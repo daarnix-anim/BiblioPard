@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ArrowUpCircle, ExternalLink, Download, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { X, ArrowUpCircle, ExternalLink, Download, Check, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { ReleaseInfo } from '../types';
 import { updateChecker } from '../services/updateChecker';
 
@@ -16,6 +16,9 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [progressText, setProgressText] = useState<string>('');
+  const [progressPercent, setProgressPercent] = useState<number>(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen || !updateInfo) return null;
 
@@ -27,24 +30,41 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
     setIsUpdating(true);
     setUpdateStatus('idle');
+    setErrorMsg(null);
+    setProgressText('Подготовка к обновлению...');
+    setProgressPercent(0);
 
     try {
-      const success = await updateChecker.applyUpdate(updateInfo.zipUrl);
-      if (success) {
+      const res = await updateChecker.applyUpdate(updateInfo.zipUrl, (status, pct) => {
+        setProgressText(status);
+        if (typeof pct === 'number') {
+          setProgressPercent(pct);
+        }
+      });
+
+      if (res.success) {
         setUpdateStatus('success');
       } else {
         setUpdateStatus('error');
+        setErrorMsg(res.error || 'Не удалось применить обновление автоматически');
       }
-    } catch {
+    } catch (err: any) {
       setUpdateStatus('error');
+      setErrorMsg(err?.message || 'Произошла непредвиденная ошибка при обновлении');
     } finally {
       setIsUpdating(false);
     }
   };
 
+  const handleReload = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#1e1e1e] border border-[#383838] rounded-xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+      <div className="bg-[#1e1e1e] border border-[#383838] rounded-xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#2e2e2e] bg-[#161616] flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -63,38 +83,71 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-[#888888] hover:text-white p-1 rounded hover:bg-[#282828] transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          {!isUpdating && (
+            <button
+              onClick={onClose}
+              className="text-[#888888] hover:text-white p-1 rounded hover:bg-[#282828] transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Release Notes Body */}
-        <div className="p-4 overflow-y-auto flex-1 space-y-3">
+        <div className="p-4 overflow-y-auto flex-1 space-y-3.5">
           <div>
-            <h3 className="text-xs font-semibold text-white mb-1">{updateInfo.name}</h3>
+            <h3 className="text-xs font-semibold text-white mb-0.5">{updateInfo.name}</h3>
             <span className="text-[10px] text-[#737373]">
               Дата выпуска: {new Date(updateInfo.publishedAt).toLocaleDateString()}
             </span>
           </div>
 
-          <div className="p-3 bg-[#141414] border border-[#2d2d2d] rounded-lg text-xs text-[#cccccc] font-sans leading-relaxed whitespace-pre-line max-h-48 overflow-y-auto">
+          <div className="p-3 bg-[#141414] border border-[#2d2d2d] rounded-lg text-xs text-[#cccccc] font-sans leading-relaxed whitespace-pre-line max-h-44 overflow-y-auto">
             {updateInfo.body}
           </div>
 
-          {updateStatus === 'success' && (
-            <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/50 rounded-md text-emerald-300 text-xs flex items-center gap-2">
-              <Check className="w-4 h-4 shrink-0" />
-              <span>Обновление скачано! Перезапустите After Effects или обновите панель.</span>
+          {/* Progress Bar while Updating */}
+          {isUpdating && (
+            <div className="p-3 bg-[#161616] border border-[#2e2e2e] rounded-lg space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-amber-300 flex items-center gap-1.5 font-medium">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  {progressText}
+                </span>
+                <span className="text-[#888888] font-mono text-[11px]">{progressPercent}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-[#252525] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300 rounded-full"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
             </div>
           )}
 
+          {/* Success State */}
+          {updateStatus === 'success' && (
+            <div className="p-3 bg-emerald-950/50 border border-emerald-500/60 rounded-lg text-emerald-200 text-xs space-y-2">
+              <div className="flex items-center gap-2 font-semibold text-emerald-300">
+                <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Обновление успешно установлено!</span>
+              </div>
+              <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+                Все файлы расширения обновлены до версии <b>v{updateInfo.version}</b>. Нажмите кнопку «Перезагрузить панель», чтобы применить изменения прямо сейчас.
+              </p>
+            </div>
+          )}
+
+          {/* Error State */}
           {updateStatus === 'error' && (
-            <div className="p-2.5 bg-red-950/40 border border-red-500/50 rounded-md text-red-300 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Не удалось автоматически применить обновление. Скачайте вручную с GitHub.</span>
+            <div className="p-3 bg-red-950/50 border border-red-500/60 rounded-lg text-red-200 text-xs space-y-1.5">
+              <div className="flex items-center gap-2 font-semibold text-red-300">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>Ошибка автоматического обновления</span>
+              </div>
+              <p className="text-[11px] text-red-300/80 leading-relaxed">
+                {errorMsg || 'Не удалось применить обновление. Скачайте архив вручную с GitHub.'}
+              </p>
             </div>
           )}
         </div>
@@ -112,20 +165,33 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           </a>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs text-[#aaaaaa] hover:text-white rounded hover:bg-[#282828] transition-colors"
-            >
-              Позже
-            </button>
-            <button
-              onClick={handleUpdate}
-              disabled={isUpdating}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded font-medium text-xs shadow transition-all active:scale-95 disabled:opacity-50"
-            >
-              {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              <span>{isUpdating ? 'Обновление...' : 'Обновить сейчас'}</span>
-            </button>
+            {updateStatus === 'success' ? (
+              <button
+                onClick={handleReload}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium text-xs shadow-lg transition-all active:scale-95 animate-pulse"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Перезагрузить панель</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={onClose}
+                  disabled={isUpdating}
+                  className="px-3 py-1.5 text-xs text-[#aaaaaa] hover:text-white rounded hover:bg-[#282828] transition-colors disabled:opacity-50"
+                >
+                  Позже
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  disabled={isUpdating}
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded font-medium text-xs shadow transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  <span>{isUpdating ? 'Обновление...' : 'Обновить сейчас'}</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

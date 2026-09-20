@@ -66,6 +66,8 @@ export const App: React.FC = () => {
           const update = await updateChecker.checkForUpdates(settings.githubRepo);
           if (update && update.hasUpdate) {
             setUpdateInfo(update);
+            showToast(`Вышла новая версия BiblioPard v${update.version}!`, 'info');
+            setIsUpdateModalOpen(true);
           }
         } catch (err) {
           console.warn('Update check failed:', err);
@@ -351,6 +353,10 @@ export const App: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         onSettingsSaved={loadLibraryAssets}
         hostInfo={hostInfo}
+        onOpenUpdateModal={(info) => {
+          setUpdateInfo(info);
+          setIsUpdateModalOpen(true);
+        }}
       />
 
       <UpdateNotificationModal

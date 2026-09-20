@@ -1,24 +1,45 @@
 import React, { useState } from 'react';
-import { X, Folder, Check, HardDrive, Cpu } from 'lucide-react';
-import { LibrarySettings, HostInfo } from '../types';
+import { X, Folder, Check, HardDrive, Cpu, RefreshCw } from 'lucide-react';
+import { LibrarySettings, HostInfo, ReleaseInfo } from '../types';
 import { libraryManager } from '../services/libraryManager';
+import { updateChecker } from '../services/updateChecker';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSettingsSaved: () => void;
   hostInfo: HostInfo | null;
+  onOpenUpdateModal?: (update: ReleaseInfo) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   onSettingsSaved,
-  hostInfo
+  hostInfo,
+  onOpenUpdateModal
 }) => {
   const [settings, setSettings] = useState<LibrarySettings>(() => libraryManager.getSettings());
+  const [checkStatus, setCheckStatus] = useState<'idle' | 'checking' | 'up-to-date' | 'update-found' | 'error'>('idle');
+  const [checkResult, setCheckResult] = useState<ReleaseInfo | null>(null);
 
   if (!isOpen) return null;
+
+  const handleManualCheckUpdate = async () => {
+    setCheckStatus('checking');
+    setCheckResult(null);
+    try {
+      const info = await updateChecker.checkForUpdates(settings.githubRepo);
+      if (info && info.hasUpdate) {
+        setCheckStatus('update-found');
+        setCheckResult(info);
+      } else {
+        setCheckStatus('up-to-date');
+      }
+    } catch {
+      setCheckStatus('error');
+    }
+  };
 
   const handleSave = () => {
     libraryManager.saveSettings(settings);
@@ -132,6 +153,99 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <option value={24}>24 кадра (Оптимально, ~280 КБ)</option>
                 <option value={36}>36 кадров (Максимальная плавность, ~450 КБ)</option>
               </select>
+            </div>
+          </div>
+
+          {/* GitHub & Updates */}
+          <div className="pt-3 border-t border-[#2d2d2d] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#666666]">
+                Обновления и GitHub
+              </span>
+              <span className="text-[10px] text-[#888888] font-mono">
+                Версия: v{updateChecker.CURRENT_VERSION}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">
+                Репозиторий GitHub
+              </label>
+              <input
+                type="text"
+                value={settings.githubRepo}
+                onChange={(e) => setSettings({ ...settings, githubRepo: e.target.value })}
+                placeholder="daarnix-anim/BiblioPard"
+                className="w-full bg-[#141414] border border-[#333333] focus:border-adobe-accent rounded px-2.5 py-1.5 text-xs text-white focus:outline-none font-mono"
+              />
+              <p className="text-[10px] text-[#737373] mt-1">
+                Отсюда расширение автоматически скачивает новые версии и релизы.
+              </p>
+            </div>
+
+            <label className="flex items-center justify-between cursor-pointer group">
+              <div>
+                <span className="text-white font-medium block">Автоматически проверять обновления</span>
+                <span className="text-[10px] text-[#737373]">
+                  Уведомлять при появлении новой версии на GitHub при запуске
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.autoCheckUpdates}
+                onChange={(e) => setSettings({ ...settings, autoCheckUpdates: e.target.checked })}
+                className="w-4 h-4 accent-adobe-accent rounded cursor-pointer"
+              />
+            </label>
+
+            <div className="pt-1 flex items-center justify-between gap-2 bg-[#171717] p-2.5 rounded-lg border border-[#2b2b2b]">
+              <div className="text-[11px] text-[#aaaaaa]">
+                {checkStatus === 'checking' && (
+                  <span className="flex items-center gap-1.5 text-amber-300">
+                    <RefreshCw className="w-3 h-3 animate-spin text-amber-400" />
+                    Проверка обновлений на GitHub...
+                  </span>
+                )}
+                {checkStatus === 'up-to-date' && (
+                  <span className="text-emerald-400 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> У вас установлена актуальная версия
+                  </span>
+                )}
+                {checkStatus === 'update-found' && checkResult && (
+                  <div className="space-y-0.5">
+                    <span className="text-amber-300 font-medium block">
+                      Доступна новая версия: v{checkResult.version}!
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenUpdateModal?.(checkResult);
+                      }}
+                      className="text-[10px] text-adobe-accent hover:underline font-medium"
+                    >
+                      Открыть окно обновления →
+                    </button>
+                  </div>
+                )}
+                {checkStatus === 'error' && (
+                  <span className="text-red-400">
+                    Не удалось проверить обновления
+                  </span>
+                )}
+                {checkStatus === 'idle' && (
+                  <span>Проверьте наличие новых релизов</span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleManualCheckUpdate}
+                disabled={checkStatus === 'checking'}
+                className="px-2.5 py-1 bg-[#282828] hover:bg-[#353535] text-white rounded text-[11px] font-medium transition-colors border border-[#3d3d3d] shrink-0 disabled:opacity-50"
+              >
+                Проверить сейчас
+              </button>
             </div>
           </div>
 
