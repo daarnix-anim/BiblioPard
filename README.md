@@ -38,7 +38,7 @@
 
 1. Скачайте архив репозитория или склонируйте его:
    ```bash
-   git clone https://github.com/Pard/BiblioPard.git
+   git clone https://github.com/daarnix-anim/BiblioPard.git
    ```
 2. Запустите двойным кликом файл **`install.bat`**.
 3. Запустите или перезапустите **After Effects**.

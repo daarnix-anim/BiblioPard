@@ -36,7 +36,7 @@ export class LibraryManager {
       autoCenterInComp: true,
       generateGifByDefault: true,
       gifFramesCount: 24,
-      githubRepo: 'Pard/BiblioPard',
+      githubRepo: 'daarnix-anim/BiblioPard',
       autoCheckUpdates: true
     };
   }

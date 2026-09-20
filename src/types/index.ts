@@ -70,7 +70,7 @@ export interface LibrarySettings {
   autoCenterInComp: boolean;
   generateGifByDefault: boolean;
   gifFramesCount: number; // e.g. 24
-  githubRepo: string; // e.g. "Pard/BiblioPard"
+  githubRepo: string; // e.g. "daarnix-anim/BiblioPard"
   autoCheckUpdates: boolean;
 }
 

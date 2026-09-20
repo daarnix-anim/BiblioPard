@@ -23,7 +23,7 @@ export class UpdateChecker {
   /**
    * Check GitHub Releases for updates
    */
-  public async checkForUpdates(repo = 'Pard/BiblioPard'): Promise<ReleaseInfo | null> {
+  public async checkForUpdates(repo = 'daarnix-anim/BiblioPard'): Promise<ReleaseInfo | null> {
     try {
       const url = `https://api.github.com/repos/${repo}/releases/latest`;
       const response = await fetch(url, {
