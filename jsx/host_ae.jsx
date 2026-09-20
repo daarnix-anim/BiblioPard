@@ -75,8 +75,8 @@ var BiblioPardAE = (function() {
         },
 
         /**
-         * Import 3D model (GLB, GLTF, OBJ) and add to active comp
-         * @param {string} paramsJson - { filePath: string, targetCompId?: number, autoCenter?: boolean }
+         * Import 3D model (GLB, GLTF, OBJ) and optionally add to active comp with scaling
+         * @param {string} paramsJson - { filePath: string, target?: 'comp'|'project', scaleMode?: string, autoCenter?: boolean }
          */
         import3DModel: function(paramsJson) {
             try {
@@ -92,6 +92,10 @@ var BiblioPardAE = (function() {
                     return jsonResponse(false, null, "File does not exist: " + filePath);
                 }
 
+                var target = params.target || 'comp'; // 'comp' or 'project'
+                var scaleMode = params.scaleMode || 'fit-comp'; // 'fit-comp', 'fit-fullhd', 'original', 'fit-width', 'fit-height'
+                var autoCenter = (params.autoCenter !== false);
+
                 app.beginUndoGroup("BiblioPard: Import 3D Model");
 
                 // Import into project
@@ -106,8 +110,8 @@ var BiblioPardAE = (function() {
                 var comp = app.project.activeItem;
                 var layer = null;
 
-                // If an active composition exists, add the 3D model to it
-                if (comp && comp instanceof CompItem) {
+                // Add to active composition if requested and available
+                if (target === 'comp' && comp && comp instanceof CompItem) {
                     // In AE 2024-2026, check/set Advanced 3D renderer if available
                     try {
                         var renderers = comp.renderers;
@@ -127,16 +131,118 @@ var BiblioPardAE = (function() {
                     layer = comp.layers.add(importedItem);
 
                     if (layer) {
-                        // Center 3D model layer in viewport
                         try {
                             if (layer.threeDLayer !== undefined) {
                                 layer.threeDLayer = true;
                             }
-                            if (layer.property("Position")) {
+                            if (autoCenter && layer.property("Position")) {
                                 layer.property("Position").setValue([comp.width / 2, comp.height / 2, 0]);
                             }
                         } catch (posErr) {
                             // Non-critical
+                        }
+
+                        // Apply 3D scaling
+                        try {
+                            var uniformScale = 100;
+
+                            if (params.scaleValue !== undefined && params.scaleValue !== null && params.scaleValue > 0) {
+                                // Explicit exact scale percentage passed from UI
+                                uniformScale = Number(params.scaleValue);
+                            } else if (params.modelDimensions && params.modelDimensions.width > 0.0001 && params.modelDimensions.height > 0.0001) {
+                                // Real 3D model geometry dimensions (in 3D units)
+                                var mWidth = Number(params.modelDimensions.width);
+                                var mHeight = Number(params.modelDimensions.height);
+                                var targetW = comp.width;
+                                var targetH = comp.height;
+
+                                if (scaleMode === 'fit-fullhd') {
+                                    targetW = 1920;
+                                    targetH = 1080;
+                                }
+
+                                var scaleX = (targetW / mWidth) * 100;
+                                var scaleY = (targetH / mHeight) * 100;
+
+                                if (scaleMode === 'fit-width') {
+                                    uniformScale = scaleX;
+                                } else if (scaleMode === 'fit-height') {
+                                    uniformScale = scaleY;
+                                } else if (scaleMode === 'fit-fullhd' || scaleMode === 'fit-comp') {
+                                    uniformScale = Math.min(scaleX, scaleY) * 0.85;
+                                } else if (scaleMode === 'custom') {
+                                    uniformScale = (params.scaleMultiplier || 1) * 100;
+                                } else {
+                                    // original (100%)
+                                    uniformScale = 100 * (params.scaleMultiplier || 1);
+                                }
+
+                                if (params.scaleMultiplier && params.scaleMultiplier !== 1 && scaleMode !== 'custom' && scaleMode !== 'original') {
+                                    uniformScale = uniformScale * Number(params.scaleMultiplier);
+                                }
+                            } else if (scaleMode === 'original') {
+                                uniformScale = 100 * (params.scaleMultiplier || 1);
+                            } else if (scaleMode === 'custom') {
+                                uniformScale = (params.scaleMultiplier || 1) * 100;
+                            } else {
+                                // Fallback if 3D dimensions are unavailable
+                                var targetW = comp.width;
+                                var targetH = comp.height;
+                                if (scaleMode === 'fit-fullhd') {
+                                    targetW = 1920;
+                                    targetH = 1080;
+                                }
+
+                                var rect = null;
+                                try {
+                                    rect = layer.sourceRectAtTime(0, false);
+                                } catch (rectErr) {}
+
+                                var objW = 0;
+                                var objH = 0;
+                                if (rect && rect.width > 0.5 && rect.height > 0.5) {
+                                    objW = rect.width;
+                                    objH = rect.height;
+                                } else if (importedItem.width > 0.5 && importedItem.height > 0.5) {
+                                    objW = importedItem.width;
+                                    objH = importedItem.height;
+                                }
+
+                                if (objW > 0.5 && objH > 0.5) {
+                                    var scaleX = (targetW / objW) * 100;
+                                    var scaleY = (targetH / objH) * 100;
+
+                                    if (scaleMode === 'fit-width') {
+                                        uniformScale = scaleX;
+                                    } else if (scaleMode === 'fit-height') {
+                                        uniformScale = scaleY;
+                                    } else {
+                                        uniformScale = Math.min(scaleX, scaleY) * 0.85;
+                                    }
+                                } else {
+                                    try {
+                                        var cmdId = app.findMenuCommandId("Fit to Comp") || 2153;
+                                        if (cmdId) {
+                                            app.executeCommand(cmdId);
+                                            if (layer.property("Scale")) {
+                                                var curScale = layer.property("Scale").value;
+                                                uniformScale = curScale[0];
+                                            }
+                                        }
+                                    } catch (cmdErr) {}
+                                }
+
+                                if (params.scaleMultiplier && params.scaleMultiplier !== 1) {
+                                    uniformScale = uniformScale * Number(params.scaleMultiplier);
+                                }
+                            }
+
+                            // Uniform 3D scale so model volume is preserved without distortion along Z
+                            if (layer.property("Scale")) {
+                                layer.property("Scale").setValue([uniformScale, uniformScale, uniformScale]);
+                            }
+                        } catch (scaleErr) {
+                            // Non-critical scale error
                         }
                     }
                 }
@@ -173,6 +279,8 @@ var BiblioPardAE = (function() {
                     return jsonResponse(false, null, "File does not exist: " + filePath);
                 }
 
+                var target = params.target || 'comp';
+
                 app.beginUndoGroup("BiblioPard: Add Environment Light");
 
                 // Import HDR/EXR image
@@ -186,8 +294,10 @@ var BiblioPardAE = (function() {
 
                 var comp = app.project.activeItem;
                 var lightLayer = null;
+                var hdrLayer = null;
+                var sourceLinked = false;
 
-                if (comp && comp instanceof CompItem) {
+                if (target === 'comp' && comp && comp instanceof CompItem) {
                     // Try to enable Advanced 3D renderer for Environment Lights
                     try {
                         var renderers = comp.renderers;
@@ -201,35 +311,114 @@ var BiblioPardAE = (function() {
                         }
                     } catch (err) {}
 
-                    // In AE 2024-2026: LightType.ENVIRONMENT is 4415 or LightType.ENVIRONMENT
-                    // If LightType.ENVIRONMENT is not directly exposed as constant:
-                    var envLightType = (typeof LightType !== 'undefined' && LightType.ENVIRONMENT) ? LightType.ENVIRONMENT : 4415;
-                    
+                    // 1. Add HDR map layer to composition in disabled state (выключенный вид)
                     try {
-                        lightLayer = comp.layers.addLight("Env: " + importedItem.name, [comp.width / 2, comp.height / 2]);
-                        lightLayer.lightType = envLightType;
-                    } catch (lightErr) {
-                        // Fallback: regular ambient/point light if environment not supported
-                        if (!lightLayer) {
-                            lightLayer = comp.layers.addLight("Env Light: " + importedItem.name, [comp.width / 2, comp.height / 2]);
+                        hdrLayer = comp.layers.add(importedItem);
+                        if (hdrLayer) {
+                            hdrLayer.enabled = false; // Turn off visibility so it doesn't block the view
+                            try {
+                                hdrLayer.moveToEnd(); // Place at bottom of timeline
+                            } catch (moveErr) {}
                         }
+                    } catch (hdrErr) {}
+
+                    // 2. Create Environment Light layer
+                    // In AE 2024-2026: LightType.ENVIRONMENT is 4416 (4415 is Ambient)
+                    var envLightType = (typeof LightType !== 'undefined' && LightType.ENVIRONMENT) ? LightType.ENVIRONMENT : 4416;
+                    var lightName = "Env Light: " + importedItem.name;
+
+                    try {
+                        lightLayer = comp.layers.addLight(lightName, [comp.width / 2, comp.height / 2]);
+                        try {
+                            lightLayer.lightType = envLightType;
+                        } catch (ltErr1) {
+                            try {
+                                lightLayer.lightType = 4416;
+                            } catch (ltErr2) {
+                                try {
+                                    lightLayer.lightType = 4415;
+                                } catch (ltErr3) {}
+                            }
+                        }
+                    } catch (lightErr) {
+                        try {
+                            lightLayer = comp.layers.addLight(lightName, [comp.width / 2, comp.height / 2]);
+                        } catch (fallbackErr) {}
                     }
 
-                    // Also add the HDR map layer to comp as guide layer or background if desired
-                    // Or assign to Environment Light map property if accessible
-                    try {
-                        var lightOptions = lightLayer.property("ADBE Light Options Group");
+                    // 3. Automatically link Environment Light Source to the HDR layer
+                    if (lightLayer && hdrLayer) {
+                        var hdrIndex = hdrLayer.index;
+
+                        // Check properties inside ADBE Light Options Group
+                        var lightOptions = lightLayer.property("ADBE Light Options Group") || lightLayer.property("Light Options");
                         if (lightOptions) {
                             for (var p = 1; p <= lightOptions.numProperties; p++) {
                                 var prop = lightOptions.property(p);
-                                if (prop.name.indexOf("Map") !== -1 || prop.name.indexOf("Environment") !== -1) {
-                                    // Assign if possible
-                                    prop.setValue(importedItem.id);
-                                    break;
+                                if (!prop) continue;
+
+                                var pName = (prop.name || "").toLowerCase();
+                                var pMatch = (prop.matchName || "").toLowerCase();
+
+                                // Skip non-source properties
+                                if (pName.indexOf("intensity") !== -1 || pName.indexOf("color") !== -1 || 
+                                    pName.indexOf("shadow") !== -1 || pName.indexOf("cone") !== -1 || 
+                                    pName.indexOf("radius") !== -1 || pName.indexOf("falloff") !== -1) {
+                                    continue;
+                                }
+
+                                var isSource = (
+                                    (typeof PropertyValueType !== 'undefined' && prop.propertyValueType === PropertyValueType.LAYER_INDEX) ||
+                                    pName.indexOf("source") !== -1 ||
+                                    pName.indexOf("источник") !== -1 ||
+                                    pName.indexOf("map") !== -1 ||
+                                    pName.indexOf("карта") !== -1 ||
+                                    pName.indexOf("env") !== -1 ||
+                                    pMatch.indexOf("source") !== -1 ||
+                                    pMatch.indexOf("env") !== -1 ||
+                                    pMatch.indexOf("map") !== -1
+                                );
+
+                                if (isSource) {
+                                    try {
+                                        prop.setValue(hdrIndex);
+                                        sourceLinked = true;
+                                        break;
+                                    } catch (setErr1) {
+                                        try {
+                                            prop.setValue(hdrLayer);
+                                            sourceLinked = true;
+                                            break;
+                                        } catch (setErr2) {}
+                                    }
                                 }
                             }
                         }
-                    } catch (mapErr) {}
+
+                        // Check top-level properties if not linked yet
+                        if (!sourceLinked) {
+                            for (var tp = 1; tp <= lightLayer.numProperties; tp++) {
+                                var tProp = lightLayer.property(tp);
+                                if (!tProp) continue;
+                                var tpName = (tProp.name || "").toLowerCase();
+                                var tpMatch = (tProp.matchName || "").toLowerCase();
+                                if (tpName.indexOf("source") !== -1 || tpName.indexOf("источник") !== -1 ||
+                                    tpMatch.indexOf("source") !== -1) {
+                                    try {
+                                        tProp.setValue(hdrIndex);
+                                        sourceLinked = true;
+                                        break;
+                                    } catch (setErr3) {
+                                        try {
+                                            tProp.setValue(hdrLayer);
+                                            sourceLinked = true;
+                                            break;
+                                        } catch (setErr4) {}
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 app.endUndoGroup();
@@ -237,6 +426,8 @@ var BiblioPardAE = (function() {
                 return jsonResponse(true, {
                     importedName: importedItem.name,
                     addedLight: !!lightLayer,
+                    addedHdrLayer: !!hdrLayer,
+                    sourceLinked: sourceLinked,
                     compName: (comp && comp instanceof CompItem) ? comp.name : null
                 });
             } catch (e) {
@@ -246,7 +437,8 @@ var BiblioPardAE = (function() {
         },
 
         /**
-         * Generic file import (for future media, textures, MOV alpha)
+         * Generic file import (media, textures, MOV alpha, audio, images)
+         * @param {string} paramsJson - { filePath: string, target?: 'comp'|'project', scaleMode?: string, autoCenter?: boolean }
          */
         importMedia: function(paramsJson) {
             try {
@@ -259,18 +451,77 @@ var BiblioPardAE = (function() {
                     return jsonResponse(false, null, "File does not exist: " + params.filePath);
                 }
 
+                var target = params.target || 'comp';
+                var scaleMode = params.scaleMode || 'original';
+                var autoCenter = (params.autoCenter !== false);
+
                 app.beginUndoGroup("BiblioPard: Import Media");
                 var importedItem = app.project.importFile(new ImportOptions(file));
                 var comp = app.project.activeItem;
                 var layer = null;
-                if (comp && comp instanceof CompItem) {
+
+                if (target === 'comp' && comp && comp instanceof CompItem) {
                     layer = comp.layers.add(importedItem);
+
+                    if (layer) {
+                        try {
+                            if (autoCenter && layer.property("Position")) {
+                                layer.property("Position").setValue([comp.width / 2, comp.height / 2]);
+                            }
+                        } catch (posErr) {}
+
+                        try {
+                            var uniformScale = 100;
+
+                            if (params.scaleValue !== undefined && params.scaleValue !== null && params.scaleValue > 0) {
+                                uniformScale = Number(params.scaleValue);
+                            } else if (scaleMode === 'original') {
+                                uniformScale = 100 * (params.scaleMultiplier || 1);
+                            } else if (scaleMode === 'custom') {
+                                uniformScale = (params.scaleMultiplier || 1) * 100;
+                            } else {
+                                var targetW = comp.width;
+                                var targetH = comp.height;
+                                if (scaleMode === 'fit-fullhd') {
+                                    targetW = 1920;
+                                    targetH = 1080;
+                                }
+
+                                var objW = importedItem.width || 0;
+                                var objH = importedItem.height || 0;
+
+                                if (objW > 0 && objH > 0) {
+                                    var scaleX = (targetW / objW) * 100;
+                                    var scaleY = (targetH / objH) * 100;
+
+                                    if (scaleMode === 'fit-width') {
+                                        uniformScale = scaleX;
+                                    } else if (scaleMode === 'fit-height') {
+                                        uniformScale = scaleY;
+                                    } else {
+                                        // fit-comp or fit-fullhd
+                                        uniformScale = Math.min(scaleX, scaleY);
+                                    }
+                                }
+
+                                if (params.scaleMultiplier && params.scaleMultiplier !== 1) {
+                                    uniformScale = uniformScale * Number(params.scaleMultiplier);
+                                }
+                            }
+
+                            if (layer.property("Scale")) {
+                                layer.property("Scale").setValue([uniformScale, uniformScale, 100]);
+                            }
+                        } catch (scaleErr) {}
+                    }
                 }
+
                 app.endUndoGroup();
 
                 return jsonResponse(true, {
                     importedName: importedItem.name,
-                    addedToComp: !!layer
+                    addedToComp: !!layer,
+                    compName: (comp && comp instanceof CompItem) ? comp.name : null
                 });
             } catch (e) {
                 try { app.endUndoGroup(); } catch (ignored) {}
@@ -378,13 +629,45 @@ var BiblioPardAE = (function() {
                 if (!filePath) return jsonResponse(false, null, "No path provided");
                 var cleanPath = String(filePath).replace(/^file:\/\/\/?/i, "");
                 var f = new File(cleanPath);
-                if (!f.exists) {
-                    f = new Folder(cleanPath);
-                }
+
                 if (f.exists) {
-                    f.execute();
-                    return jsonResponse(true, { path: f.fsName }, "Revealed in Explorer");
+                    // It is a file: NEVER call f.execute() because that opens the file in 3D viewer or player!
+                    if ($.os.indexOf("Windows") !== -1) {
+                        try {
+                            var winPath = f.fsName.replace(/\//g, "\\");
+                            system.callSystem('explorer.exe /select,"' + winPath + '"');
+                            return jsonResponse(true, { path: winPath }, "Revealed in Windows Explorer");
+                        } catch (sysErr) {
+                            if (f.parent && f.parent.exists) {
+                                f.parent.execute();
+                                return jsonResponse(true, { path: f.parent.fsName }, "Parent folder opened");
+                            }
+                        }
+                    } else {
+                        try {
+                            system.callSystem('open -R "' + f.fsName + '"');
+                            return jsonResponse(true, { path: f.fsName }, "Revealed in macOS Finder");
+                        } catch (macErr) {
+                            if (f.parent && f.parent.exists) {
+                                f.parent.execute();
+                                return jsonResponse(true, { path: f.parent.fsName }, "Parent folder opened");
+                            }
+                        }
+                    }
+                    // Fallback to parent folder
+                    if (f.parent && f.parent.exists) {
+                        f.parent.execute();
+                        return jsonResponse(true, { path: f.parent.fsName }, "Parent folder opened");
+                    }
                 }
+
+                // If it's a folder, execute opens the folder
+                var folder = new Folder(cleanPath);
+                if (folder.exists) {
+                    folder.execute();
+                    return jsonResponse(true, { path: folder.fsName }, "Folder opened");
+                }
+
                 // If specific file not found, try revealing parent directory
                 var lastSlash = Math.max(cleanPath.lastIndexOf("/"), cleanPath.lastIndexOf("\\"));
                 if (lastSlash !== -1) {

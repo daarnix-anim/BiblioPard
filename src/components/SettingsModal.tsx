@@ -119,6 +119,67 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="w-4 h-4 accent-adobe-accent rounded cursor-pointer"
               />
             </label>
+
+            {/* Default Import Target */}
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <span className="text-white font-medium block">Режим импорта ассетов</span>
+                <span className="text-[10px] text-[#737373]">
+                  При наличии открытой композиции в After Effects
+                </span>
+              </div>
+              <select
+                value={settings.defaultImportTarget || 'always-ask'}
+                onChange={(e) => setSettings({ ...settings, defaultImportTarget: e.target.value as any })}
+                className="bg-[#141414] border border-[#333333] rounded px-2 py-1 text-xs text-white"
+              >
+                <option value="always-ask">Всегда спрашивать (показывать выбор)</option>
+                <option value="always-comp">Сразу в активную композицию</option>
+                <option value="always-project">Только в проект (без слоя)</option>
+              </select>
+            </div>
+
+            {/* Default 3D Scale Mode */}
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <span className="text-white font-medium block">Масштаб 3D-моделей по умолчанию</span>
+                <span className="text-[10px] text-[#737373]">
+                  Равномерное пропорциональное 3D-масштабирование [X, Y, Z]
+                </span>
+              </div>
+              <select
+                value={settings.default3DScaleMode || 'fit-comp'}
+                onChange={(e) => setSettings({ ...settings, default3DScaleMode: e.target.value as any })}
+                className="bg-[#141414] border border-[#333333] rounded px-2 py-1 text-xs text-white"
+              >
+                <option value="fit-comp">По размеру композиции (Автомасштаб)</option>
+                <option value="fit-fullhd">Стандарт Full HD (1920×1080)</option>
+                <option value="original">Оригинальный масштаб (100%)</option>
+                <option value="fit-width">По ширине композиции</option>
+                <option value="fit-height">По высоте композиции</option>
+              </select>
+            </div>
+
+            {/* Default Media Scale Mode */}
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <span className="text-white font-medium block">Масштаб 2D-медиа по умолчанию</span>
+                <span className="text-[10px] text-[#737373]">
+                  Для видео, секвенций, текстур и картинок
+                </span>
+              </div>
+              <select
+                value={settings.defaultMediaScaleMode || 'fit-comp'}
+                onChange={(e) => setSettings({ ...settings, defaultMediaScaleMode: e.target.value as any })}
+                className="bg-[#141414] border border-[#333333] rounded px-2 py-1 text-xs text-white"
+              >
+                <option value="fit-comp">По размеру композиции (Автомасштаб)</option>
+                <option value="original">Оригинальный масштаб (100%)</option>
+                <option value="fit-fullhd">Стандарт Full HD (1920×1080)</option>
+                <option value="fit-width">По ширине композиции</option>
+                <option value="fit-height">По высоте композиции</option>
+              </select>
+            </div>
           </div>
 
           {/* 360 GIF Options */}

@@ -20,22 +20,27 @@ export class LibraryManager {
   }
 
   public getSettings(): LibrarySettings {
-    const saved = localStorage.getItem(this.settingsKey);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {}
-    }
-    // Default settings
-    return {
+    const defaults: LibrarySettings = {
       libraryRoot: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library',
       autoSwitchToAdvanced3D: true,
       autoCenterInComp: true,
       generateGifByDefault: true,
       gifFramesCount: 24,
       githubRepo: 'daarnix-anim/BiblioPard',
-      autoCheckUpdates: true
+      autoCheckUpdates: true,
+      defaultImportTarget: 'always-ask',
+      default3DScaleMode: 'fit-comp',
+      defaultMediaScaleMode: 'fit-comp'
     };
+
+    const saved = localStorage.getItem(this.settingsKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...defaults, ...parsed };
+      } catch {}
+    }
+    return defaults;
   }
 
   public saveSettings(settings: LibrarySettings) {
@@ -392,18 +397,19 @@ export class LibraryManager {
   }
 
   /**
-   * Update asset metadata (name, category, tags, description)
+   * Update asset metadata (name, category, tags, description, scale)
    */
   public async updateAssetMetadata(
     asset: AssetItem,
-    updates: { name: string; category: string; tags: string[]; description?: string }
+    updates: { name?: string; category?: string; tags?: string[]; description?: string; scale?: number }
   ): Promise<AssetItem> {
     const updatedAsset: AssetItem = {
       ...asset,
-      name: updates.name.trim(),
-      category: updates.category.trim(),
-      tags: updates.tags,
-      description: updates.description
+      name: updates.name !== undefined ? updates.name.trim() : asset.name,
+      category: updates.category !== undefined ? updates.category.trim() : asset.category,
+      tags: updates.tags !== undefined ? updates.tags : asset.tags,
+      description: updates.description !== undefined ? updates.description : asset.description,
+      scale: updates.scale !== undefined ? updates.scale : asset.scale
     };
 
     if (this.isNodeAvailable()) {
@@ -425,6 +431,7 @@ export class LibraryManager {
           category: updatedAsset.category,
           tags: updatedAsset.tags,
           description: updatedAsset.description || '',
+          scale: updatedAsset.scale,
           updatedAt: new Date().toISOString()
         };
 
@@ -438,6 +445,13 @@ export class LibraryManager {
     }
 
     return updatedAsset;
+  }
+
+  /**
+   * Save custom scale for asset into its meta.json
+   */
+  public async updateAssetScale(asset: AssetItem, scale: number): Promise<void> {
+    await this.updateAssetMetadata(asset, { scale });
   }
 
   /**

@@ -64,6 +64,28 @@ export interface ProjectItem {
   duration: number;
 }
 
+export type ImportTarget = 'comp' | 'project';
+
+export type ScaleMode = 
+  | 'fit-comp'    // Auto-fit within active composition bounds (aspect ratio preserved)
+  | 'fit-fullhd'  // Standardized 1920x1080 reference scale (uniform 3D scale)
+  | 'original'    // 100% scale
+  | 'fit-width'   // Fit to composition width
+  | 'fit-height'  // Fit to composition height
+  | 'custom';     // Custom numeric scale multiplier or percentage
+
+export type ImportPromptMode = 'always-ask' | 'always-comp' | 'always-project';
+
+export interface ImportOptionsPayload {
+  target?: ImportTarget;
+  scaleMode?: ScaleMode;
+  scaleValue?: number; // Exact scale % to set on the AE layer (e.g. 91813, 100, 500)
+  scaleMultiplier?: number; // Multiplier factor (e.g. 1x, 10x, 918x)
+  modelDimensions?: { width: number; height: number; depth: number };
+  autoCenter?: boolean;
+  saveAssetScale?: boolean;
+}
+
 export interface LibrarySettings {
   libraryRoot: string;
   autoSwitchToAdvanced3D: boolean;
@@ -72,6 +94,9 @@ export interface LibrarySettings {
   gifFramesCount: number; // e.g. 24
   githubRepo: string; // e.g. "daarnix-anim/BiblioPard"
   autoCheckUpdates: boolean;
+  defaultImportTarget: ImportPromptMode;
+  default3DScaleMode: ScaleMode;
+  defaultMediaScaleMode: ScaleMode;
 }
 
 export interface ReleaseInfo {

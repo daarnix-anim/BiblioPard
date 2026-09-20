@@ -51,6 +51,34 @@ var BiblioPardPPro = (function() {
             } catch (e) {
                 return jsonResponse(false, null, e.toString());
             }
+        },
+
+        revealFile: function(filePath) {
+            try {
+                if (!filePath) return jsonResponse(false, null, "No path provided");
+                var cleanPath = String(filePath).replace(/^file:\/\/\/?/i, "");
+                var f = new File(cleanPath);
+                if (f.exists) {
+                    if ($.os.indexOf("Windows") !== -1) {
+                        try {
+                            system.callSystem('explorer.exe /select,"' + f.fsName.replace(/\//g, "\\") + '"');
+                            return jsonResponse(true, { path: f.fsName }, "Revealed in Windows Explorer");
+                        } catch (err) {}
+                    }
+                    if (f.parent && f.parent.exists) {
+                        f.parent.execute();
+                        return jsonResponse(true, { path: f.parent.fsName }, "Parent folder opened");
+                    }
+                }
+                var folder = new Folder(cleanPath);
+                if (folder.exists) {
+                    folder.execute();
+                    return jsonResponse(true, { path: folder.fsName }, "Folder opened");
+                }
+                return jsonResponse(false, null, "Path not found");
+            } catch (e) {
+                return jsonResponse(false, null, e.toString());
+            }
         }
     };
 })();

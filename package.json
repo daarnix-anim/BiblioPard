@@ -1,6 +1,6 @@
 {
   "name": "bibliopard-extension",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "3D & Media Asset Library for Adobe After Effects and Premiere Pro",
   "private": true,
   "type": "module",

@@ -7,7 +7,8 @@ import { ModalEditAsset } from './components/ModalEditAsset';
 import { Viewport3DModal } from './components/Viewport3DModal';
 import { SettingsModal } from './components/SettingsModal';
 import { UpdateNotificationModal } from './components/UpdateNotificationModal';
-import { AssetItem, Category, HostInfo, ReleaseInfo } from './types';
+import { ModalImportAsset } from './components/ModalImportAsset';
+import { AssetItem, Category, HostInfo, ReleaseInfo, ImportTarget, ScaleMode } from './types';
 import { hostBridge } from './services/hostBridge';
 import { libraryManager } from './services/libraryManager';
 import { libraryWatcher } from './services/libraryWatcher';
@@ -35,6 +36,13 @@ export const App: React.FC = () => {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
   const [previewAsset, setPreviewAsset] = useState<AssetItem | null>(null);
   const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
+  const [importModalAsset, setImportModalAsset] = useState<AssetItem | null>(null);
+  const [activeCompInfo, setActiveCompInfo] = useState<{
+    hasActiveComp: boolean;
+    name?: string;
+    width?: number;
+    height?: number;
+  } | null>(null);
 
   // Host, Update & Toast
   const [hostInfo, setHostInfo] = useState<HostInfo | null>(null);
@@ -114,10 +122,41 @@ export const App: React.FC = () => {
     }, 4000);
   };
 
-  const handleImportAsset = async (asset: AssetItem) => {
+  const executeImport = async (
+    asset: AssetItem,
+    options?: {
+      target?: ImportTarget;
+      scaleMode?: ScaleMode;
+      scaleValue?: number;
+      scaleMultiplier?: number;
+      modelDimensions?: { width: number; height: number; depth: number };
+      autoCenter?: boolean;
+      rememberPreference?: boolean;
+      saveAssetScale?: boolean;
+    }
+  ) => {
     setImportingAssetId(asset.id);
     try {
-      const res = await hostBridge.importAsset(asset);
+      if (options?.rememberPreference) {
+        const currentSettings = libraryManager.getSettings();
+        libraryManager.saveSettings({
+          ...currentSettings,
+          defaultImportTarget: options.target === 'comp' ? 'always-comp' : 'always-project',
+          default3DScaleMode: asset.type === '3d-model' && options.scaleMode ? options.scaleMode : currentSettings.default3DScaleMode,
+          defaultMediaScaleMode: asset.type !== '3d-model' && options.scaleMode ? options.scaleMode : currentSettings.defaultMediaScaleMode
+        });
+      }
+
+      if (options?.saveAssetScale && options.scaleMultiplier) {
+        try {
+          await libraryManager.updateAssetScale(asset, options.scaleMultiplier);
+          setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, scale: options.scaleMultiplier } : a));
+        } catch (e) {
+          console.warn('Failed to persist asset scale:', e);
+        }
+      }
+
+      const res = await hostBridge.importAsset(asset, options);
       if (res.success) {
         showToast(res.message, 'success');
       } else {
@@ -128,6 +167,49 @@ export const App: React.FC = () => {
     } finally {
       setImportingAssetId(null);
     }
+  };
+
+  const handleImportAsset = async (asset: AssetItem) => {
+    const settings = libraryManager.getSettings();
+    const host = hostBridge.getHostApp();
+
+    if (host === 'AEFT' || host === 'STANDALONE') {
+      try {
+        const comp = await hostBridge.getActiveCompInfo();
+        setActiveCompInfo(comp);
+
+        // If an active composition exists and settings say "always ask", show options dialog
+        if (comp && comp.hasActiveComp && settings.defaultImportTarget === 'always-ask') {
+          setImportModalAsset(asset);
+          return;
+        }
+
+        // Direct import based on saved preference
+        const target: ImportTarget = (comp && comp.hasActiveComp && settings.defaultImportTarget === 'always-comp') 
+          ? 'comp' 
+          : 'project';
+        const scaleMode: ScaleMode = asset.type === '3d-model' 
+          ? settings.default3DScaleMode 
+          : settings.defaultMediaScaleMode;
+
+        await executeImport(asset, {
+          target,
+          scaleMode,
+          scaleMultiplier: asset.scale,
+          scaleValue: asset.scale ? asset.scale * 100 : undefined,
+          autoCenter: settings.autoCenterInComp
+        });
+        return;
+      } catch (e) {
+        console.warn('Active comp check error, falling back to direct import:', e);
+      }
+    }
+
+    // Default direct import
+    await executeImport(asset, {
+      scaleMultiplier: asset.scale,
+      scaleValue: asset.scale ? asset.scale * 100 : undefined
+    });
   };
 
   const handleRevealAsset = async (asset: AssetItem) => {
@@ -363,6 +445,19 @@ export const App: React.FC = () => {
         isOpen={isUpdateModalOpen}
         onClose={() => setIsUpdateModalOpen(false)}
         updateInfo={updateInfo}
+      />
+
+      <ModalImportAsset
+        isOpen={!!importModalAsset}
+        onClose={() => setImportModalAsset(null)}
+        asset={importModalAsset}
+        activeCompInfo={activeCompInfo}
+        defaultSettings={libraryManager.getSettings()}
+        onConfirmImport={async (options) => {
+          if (importModalAsset) {
+            await executeImport(importModalAsset, options);
+          }
+        }}
       />
     </div>
   );

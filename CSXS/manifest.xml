@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="11.0" ExtensionBundleId="com.bibliopard.extension" ExtensionBundleVersion="0.0.1"
+<ExtensionManifest Version="11.0" ExtensionBundleId="com.bibliopard.extension" ExtensionBundleVersion="0.1.0"
     ExtensionBundleName="BiblioPard" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <ExtensionList>
-        <Extension Id="com.bibliopard.extension.panel" Version="0.0.1" />
+        <Extension Id="com.bibliopard.extension.panel" Version="0.1.0" />
     </ExtensionList>
     <ExecutionEnvironment>
         <HostList>

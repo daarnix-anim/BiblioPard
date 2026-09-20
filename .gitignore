@@ -18,3 +18,7 @@ Thumbs.db
 
 # Adobe CEP local debug
 .debug.local
+
+# Local asset library contents (exclude heavy assets from git)
+Library/**
+!Library/README.txt
