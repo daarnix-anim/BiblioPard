@@ -32,7 +32,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#2e2e2e] bg-[#1a1a1a] flex items-center justify-between">
           <h2 className="font-semibold text-sm text-white flex items-center gap-2">
-            <span>Settings & Preferences</span>
+            <span>Настройки библиотеки</span>
           </h2>
           <button
             onClick={onClose}
@@ -47,7 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Library Path */}
           <div>
             <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">
-              Library Root Directory
+              Корневая папка библиотеки
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -59,21 +59,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </div>
             <p className="text-[10px] text-[#737373] mt-1">
-              All 3D models, HDR maps, and preview images will be stored and indexed here.
+              Все 3D-модели, карты HDR и превью сохраняются и индексируются здесь.
             </p>
           </div>
 
           {/* After Effects Options */}
           <div className="pt-3 border-t border-[#2d2d2d] space-y-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-[#666666]">
-              After Effects Integration
+              Интеграция с After Effects
             </span>
 
             <label className="flex items-center justify-between cursor-pointer group">
               <div>
-                <span className="text-white font-medium block">Switch to Advanced 3D Renderer</span>
+                <span className="text-white font-medium block">Включать Advanced 3D рендерер</span>
                 <span className="text-[10px] text-[#737373]">
-                  Automatically enable Advanced 3D on active composition when importing GLB/GLTF
+                  Автоматически переключать композицию на Advanced 3D при импорте GLB/GLTF
                 </span>
               </div>
               <input
@@ -86,9 +86,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <label className="flex items-center justify-between cursor-pointer group">
               <div>
-                <span className="text-white font-medium block">Auto-Center in Composition</span>
+                <span className="text-white font-medium block">Авто-центрирование в композиции</span>
                 <span className="text-[10px] text-[#737373]">
-                  Center imported 3D model in active comp viewport
+                  Размещать импортированную 3D-модель по центру активной композиции
                 </span>
               </div>
               <input
@@ -103,14 +103,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* 360 GIF Options */}
           <div className="pt-3 border-t border-[#2d2d2d] space-y-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-[#666666]">
-              Preview Generation
+              Генерация превью
             </span>
 
             <label className="flex items-center justify-between cursor-pointer group">
               <div>
-                <span className="text-white font-medium block">Auto-generate 360° GIF by default</span>
+                <span className="text-white font-medium block">Автоматически создавать 360° GIF по умолчанию</span>
                 <span className="text-[10px] text-[#737373]">
-                  Creates rotating turnaround preview for hover playback
+                  Создает круговую анимацию 360° для просмотра при наведении
                 </span>
               </div>
               <input
@@ -122,15 +122,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </label>
 
             <div className="flex items-center justify-between">
-              <span className="text-white font-medium">360° GIF Frame Count</span>
+              <span className="text-white font-medium">Количество кадров в 360° GIF</span>
               <select
                 value={settings.gifFramesCount}
                 onChange={(e) => setSettings({ ...settings, gifFramesCount: parseInt(e.target.value, 10) })}
                 className="bg-[#141414] border border-[#333333] rounded px-2 py-1 text-xs text-white"
               >
-                <option value={16}>16 frames (Fastest, ~150KB)</option>
-                <option value={24}>24 frames (Balanced, ~280KB)</option>
-                <option value={36}>36 frames (Ultra smooth, ~450KB)</option>
+                <option value={16}>16 кадров (Быстрее, ~150 КБ)</option>
+                <option value={24}>24 кадра (Оптимально, ~280 КБ)</option>
+                <option value={36}>36 кадров (Максимальная плавность, ~450 КБ)</option>
               </select>
             </div>
           </div>
@@ -138,17 +138,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Diagnostics info */}
           <div className="pt-3 border-t border-[#2d2d2d] text-[10px] text-[#737373] space-y-1">
             <div className="flex justify-between">
-              <span>Host Application:</span>
+              <span>Хост-приложение:</span>
               <span className="text-white font-mono">{hostInfo?.app || 'STANDALONE'}</span>
             </div>
             <div className="flex justify-between">
-              <span>Host Version:</span>
+              <span>Версия хоста:</span>
               <span className="text-white font-mono">{hostInfo?.version || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
-              <span>Node.js Filesystem:</span>
+              <span>Файловая система Node.js:</span>
               <span className={libraryManager.isNodeAvailable() ? 'text-emerald-400' : 'text-amber-400'}>
-                {libraryManager.isNodeAvailable() ? 'Active (Direct Disk Access)' : 'Dev Browser Fallback'}
+                {libraryManager.isNodeAvailable() ? 'Активна (Прямой доступ к диску)' : 'Режим браузера (Эмуляция)'}
               </span>
             </div>
           </div>
@@ -160,14 +160,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={onClose}
             className="px-3 py-1.5 text-xs text-[#aaaaaa] hover:text-white rounded-md hover:bg-[#282828] transition-colors"
           >
-            Cancel
+            Отмена
           </button>
           <button
             onClick={handleSave}
             className="flex items-center gap-1.5 px-4 py-1.5 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded-md text-xs font-medium transition-colors shadow"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>Save Changes</span>
+            <span>Сохранить настройки</span>
           </button>
         </div>
       </div>

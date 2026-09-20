@@ -34,34 +34,34 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     if (asset.type === '3d-model') {
       return (
         <span className="flex items-center gap-1 bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[9px] font-semibold px-1.5 py-0.5 rounded">
-          <Box className="w-2.5 h-2.5" /> 3D Model
+          <Box className="w-2.5 h-2.5" /> 3D-модель
         </span>
       );
     }
     if (asset.type === 'pbr-material') {
       return (
         <span className="flex items-center gap-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[9px] font-semibold px-1.5 py-0.5 rounded">
-          <Palette className="w-2.5 h-2.5" /> PBR Material
+          <Palette className="w-2.5 h-2.5" /> PBR-материал
         </span>
       );
     }
     if (asset.type === 'environment-light') {
       return (
         <span className="flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-semibold px-1.5 py-0.5 rounded">
-          <Sun className="w-2.5 h-2.5" /> Env Light
+          <Sun className="w-2.5 h-2.5" /> Карта света
         </span>
       );
     }
     if (asset.type === 'video-alpha') {
       return (
         <span className="flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[9px] font-semibold px-1.5 py-0.5 rounded">
-          <Film className="w-2.5 h-2.5" /> Alpha Video
+          <Film className="w-2.5 h-2.5" /> Видео с альфой
         </span>
       );
     }
     return (
       <span className="flex items-center gap-1 bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-semibold px-1.5 py-0.5 rounded">
-        <Type className="w-2.5 h-2.5" /> Title / MOGRT
+        <Type className="w-2.5 h-2.5" /> Титры / MOGRT
       </span>
     );
   };
@@ -121,7 +121,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
               e.stopPropagation();
               onOpenPreview(asset);
             }}
-            title="Open Interactive 3D View"
+            title="Интерактивный 3D-просмотр"
             className={`absolute bottom-2 right-2 p-1.5 bg-[#181818]/90 hover:bg-[#2c2c2c] text-white rounded-md transition-opacity duration-150 border border-white/15 shadow-md ${
               isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
@@ -172,7 +172,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                   e.stopPropagation();
                   onEdit(asset);
                 }}
-                title="Edit asset, update from AE, or delete"
+                title="Редактировать, обновить из AE или удалить"
                 className="p-1 text-[#666666] hover:text-white hover:bg-[#2e2e2e] rounded transition-colors"
               >
                 <Edit3 className="w-3 h-3" />
@@ -186,7 +186,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                   e.stopPropagation();
                   onReveal(asset);
                 }}
-                title="Show in File Explorer / Open Folder"
+                title="Показать в папке / Проводнике Windows"
                 className="p-1.5 bg-[#252525] hover:bg-[#333333] text-[#8e8e8e] hover:text-white rounded text-xs transition-colors border border-[#353535]"
               >
                 <FolderOpen className="w-3.5 h-3.5" />
@@ -196,11 +196,11 @@ export const AssetCard: React.FC<AssetCardProps> = ({
             <button
               onClick={() => onImport(asset)}
               disabled={isImporting}
-              title="Import to After Effects"
+              title="Импортировать в After Effects"
               className="flex items-center gap-1.5 px-3 py-1 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded text-xs font-medium shadow-sm transition-transform active:scale-95 disabled:opacity-50"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{isImporting ? 'Importing...' : 'Import'}</span>
+              <span>{isImporting ? 'Импорт...' : 'Импорт'}</span>
             </button>
           </div>
         </div>

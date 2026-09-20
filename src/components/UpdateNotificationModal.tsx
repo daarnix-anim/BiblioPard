@@ -53,13 +53,13 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
             </div>
             <div>
               <h2 className="font-semibold text-sm text-white flex items-center gap-2">
-                <span>New Update Available!</span>
+                <span>Доступно новое обновление!</span>
                 <span className="text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/40">
                   v{updateInfo.version}
                 </span>
               </h2>
               <p className="text-[10px] text-[#888888]">
-                Current version: v{updateChecker.CURRENT_VERSION}
+                Текущая версия: v{updateChecker.CURRENT_VERSION}
               </p>
             </div>
           </div>
@@ -76,7 +76,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           <div>
             <h3 className="text-xs font-semibold text-white mb-1">{updateInfo.name}</h3>
             <span className="text-[10px] text-[#737373]">
-              Released: {new Date(updateInfo.publishedAt).toLocaleDateString()}
+              Дата выпуска: {new Date(updateInfo.publishedAt).toLocaleDateString()}
             </span>
           </div>
 
@@ -87,14 +87,14 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           {updateStatus === 'success' && (
             <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/50 rounded-md text-emerald-300 text-xs flex items-center gap-2">
               <Check className="w-4 h-4 shrink-0" />
-              <span>Update downloaded! Please restart After Effects or reload the panel.</span>
+              <span>Обновление скачано! Перезапустите After Effects или обновите панель.</span>
             </div>
           )}
 
           {updateStatus === 'error' && (
             <div className="p-2.5 bg-red-950/40 border border-red-500/50 rounded-md text-red-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Could not auto-apply update. Please download manually from GitHub.</span>
+              <span>Не удалось автоматически применить обновление. Скачайте вручную с GitHub.</span>
             </div>
           )}
         </div>
@@ -107,7 +107,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs text-adobe-accent hover:underline"
           >
-            <span>View on GitHub</span>
+            <span>Смотреть на GitHub</span>
             <ExternalLink className="w-3 h-3" />
           </a>
 
@@ -116,7 +116,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               onClick={onClose}
               className="px-3 py-1.5 text-xs text-[#aaaaaa] hover:text-white rounded hover:bg-[#282828] transition-colors"
             >
-              Later
+              Позже
             </button>
             <button
               onClick={handleUpdate}
@@ -124,7 +124,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded font-medium text-xs shadow transition-all active:scale-95 disabled:opacity-50"
             >
               {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              <span>{isUpdating ? 'Updating...' : 'Update Now'}</span>
+              <span>{isUpdating ? 'Обновление...' : 'Обновить сейчас'}</span>
             </button>
           </div>
         </div>

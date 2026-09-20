@@ -79,7 +79,7 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
           await engine.loadMaterial(asset.materialMaps || {});
         }
       } catch (err: any) {
-        setLoadError('Failed to load 3D asset in viewport: ' + (err?.message || err));
+        setLoadError('Не удалось загрузить 3D-ассет в окне просмотра: ' + (err?.message || err));
       } finally {
         setIsLoading(false);
       }
@@ -125,14 +125,14 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
             <div>
               <h2 className="font-semibold text-sm text-white">{asset.name}</h2>
               <div className="flex items-center gap-2 text-[10px] text-[#888888]">
-                <span>Format: .{asset.format.toUpperCase()}</span>
+                <span>Формат: .{asset.format.toUpperCase()}</span>
                 <span>•</span>
-                <span>Category: {asset.category}</span>
+                <span>Категория: {asset.category}</span>
                 {asset.materialMaps && (
                   <>
                     <span>•</span>
                     <span className="text-indigo-300">
-                      Maps: {Object.keys(asset.materialMaps).join(', ')}
+                      Текстуры: {Object.keys(asset.materialMaps).join(', ')}
                     </span>
                   </>
                 )}
@@ -144,7 +144,7 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
             {/* Grid Toggle */}
             <button
               onClick={toggleGrid}
-              title="Toggle Ground Grid"
+              title="Вкл/выкл сетку земли"
               className={`p-1.5 rounded transition-colors ${
                 gridVisible ? 'bg-adobe-accent text-white' : 'bg-[#282828] text-[#888888] hover:text-white'
               }`}
@@ -156,17 +156,17 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
             <div className="flex items-center gap-1 bg-[#252525] p-1 rounded">
               <button
                 onClick={() => setBackground('#141414')}
-                title="Dark BG"
+                title="Темный фон"
                 className="w-3.5 h-3.5 rounded-full bg-[#141414] border border-[#444444]"
               />
               <button
                 onClick={() => setBackground('#2a2a2e')}
-                title="Studio Grey BG"
+                title="Серый студийный фон"
                 className="w-3.5 h-3.5 rounded-full bg-[#2a2a2e] border border-[#444444]"
               />
               <button
                 onClick={() => setBackground('#404040')}
-                title="Light Grey BG"
+                title="Светлый фон"
                 className="w-3.5 h-3.5 rounded-full bg-[#404040] border border-[#444444]"
               />
             </div>
@@ -178,7 +178,7 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
                   onClose();
                   onEdit(asset);
                 }}
-                title="Edit Asset Details, Update from AE, or Delete"
+                title="Редактировать ассет, обновить из AE или удалить"
                 className="text-[#888888] hover:text-white p-1.5 rounded hover:bg-[#282828] transition-colors ml-1"
               >
                 <Edit3 className="w-4 h-4" />
@@ -202,7 +202,7 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20 gap-3">
               <Loader2 className="w-8 h-8 text-adobe-accent animate-spin" />
-              <p className="text-xs text-adobe-muted">Rendering 3D viewport...</p>
+              <p className="text-xs text-adobe-muted">Рендеринг 3D-просмотра...</p>
             </div>
           )}
 
@@ -216,14 +216,14 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
 
           {/* Quick HUD hints */}
           <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded text-[10px] text-[#888888] border border-white/10 pointer-events-none">
-            Left Click: Orbit • Right Click: Pan • Scroll: Zoom
+            ЛКМ: Вращение • ПКМ: Панорамирование • Колесико: Зум
           </div>
         </div>
 
         {/* Modal Footer */}
         <div className="px-4 py-3 border-t border-[#2e2e2e] bg-[#161616] flex items-center justify-between">
           <div className="text-xs text-[#888888] truncate max-w-md">
-            {asset.description || 'No description provided.'}
+            {asset.description || 'Описание отсутствует.'}
           </div>
 
           <button
@@ -232,7 +232,7 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
             className="flex items-center gap-2 px-4 py-2 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded-md text-xs font-semibold shadow-md transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
           >
             {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span>Import to After Effects</span>
+            <span>{isImporting ? 'Импорт...' : 'Импортировать в After Effects'}</span>
           </button>
         </div>
       </div>

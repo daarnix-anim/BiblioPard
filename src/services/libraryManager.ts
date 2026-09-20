@@ -44,12 +44,12 @@ export class LibraryManager {
 
   public getDefaultCategories(): Category[] {
     return [
-      { id: 'all', name: 'All Assets', icon: 'Layers', type: 'all' },
-      { id: '3d-models', name: '3D Models', icon: 'Box', type: '3d-model' },
-      { id: 'materials', name: '3D Materials', icon: 'Palette', type: 'pbr-material' },
-      { id: 'env-lights', name: 'Environment Lights', icon: 'Sun', type: 'environment-light' },
-      { id: 'video-alpha', name: 'Video (Alpha)', icon: 'Film', type: 'video-alpha' },
-      { id: 'titles', name: 'Titles & MOGRT', icon: 'Type', type: 'title-mogrt' }
+      { id: 'all', name: 'Все ассеты', icon: 'Layers', type: 'all' },
+      { id: '3d-models', name: '3D-модели', icon: 'Box', type: '3d-model' },
+      { id: 'materials', name: '3D-материалы', icon: 'Palette', type: 'pbr-material' },
+      { id: 'env-lights', name: 'Карты света (HDR)', icon: 'Sun', type: 'environment-light' },
+      { id: 'video-alpha', name: 'Видео с альфой', icon: 'Film', type: 'video-alpha' },
+      { id: 'titles', name: 'Титры и MOGRT', icon: 'Type', type: 'title-mogrt' }
     ];
   }
 

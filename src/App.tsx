@@ -57,7 +57,7 @@ export const App: React.FC = () => {
       const settings = libraryManager.getSettings();
       libraryWatcher.startWatching(settings.libraryRoot, () => {
         loadLibraryAssets();
-        showToast('Library auto-updated from disk', 'info');
+        showToast('Библиотека автоматически синхронизирована с диском', 'info');
       });
 
       // Check for updates via GitHub
@@ -86,7 +86,7 @@ export const App: React.FC = () => {
       const items = await libraryManager.loadAssets();
       setAssets(items);
     } catch (err) {
-      showToast('Error loading library assets', 'error');
+      showToast('Ошибка при загрузке ассетов библиотеки', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -97,9 +97,9 @@ export const App: React.FC = () => {
     try {
       const items = await libraryManager.loadAssets();
       setAssets(items);
-      showToast('Library refreshed', 'info');
+      showToast('Библиотека обновлена', 'info');
     } catch {
-      showToast('Refresh failed', 'error');
+      showToast('Не удалось обновить библиотеку', 'error');
     } finally {
       setIsRefreshing(false);
     }
@@ -122,7 +122,7 @@ export const App: React.FC = () => {
         showToast(res.message, 'error');
       }
     } catch (err: any) {
-      showToast('Import failed: ' + (err?.message || err), 'error');
+      showToast('Ошибка импорта: ' + (err?.message || err), 'error');
     } finally {
       setImportingAssetId(null);
     }
@@ -132,10 +132,10 @@ export const App: React.FC = () => {
     try {
       const ok = await hostBridge.revealInExplorer(asset.filePath);
       if (!ok) {
-        showToast(`Could not open file location: ${asset.filePath}`, 'error');
+        showToast(`Не удалось открыть расположение файла: ${asset.filePath}`, 'error');
       }
     } catch (err: any) {
-      showToast('Error opening file location: ' + (err?.message || err), 'error');
+      showToast('Ошибка при открытии расположения файла: ' + (err?.message || err), 'error');
     }
   };
 
@@ -147,19 +147,19 @@ export const App: React.FC = () => {
     try {
       const items = await hostBridge.getSelectedProjectItems();
       if (!items || items.length === 0) {
-        showToast('Please select an item in After Effects Project panel first', 'info');
+        showToast('Сначала выделите элемент в панели Project After Effects', 'info');
         return;
       }
 
       const first = items[0];
       if (first.filePath) {
-        showToast(`Found "${first.name}". Opening Add Asset wizard...`, 'info');
+        showToast(`Найден "${first.name}". Открываем добавление ассета...`, 'info');
         setIsAddModalOpen(true);
       } else {
-        showToast(`Selected "${first.name}" (${first.typeName}) has no source file`, 'error');
+        showToast(`У выбранного "${first.name}" (${first.typeName}) нет исходного файла на диске`, 'error');
       }
     } catch (err: any) {
-      showToast('Error reading AE selection: ' + (err?.message || err), 'error');
+      showToast('Ошибка чтения выделения в AE: ' + (err?.message || err), 'error');
     } finally {
       setIsImportingFromAE(false);
     }
@@ -167,7 +167,7 @@ export const App: React.FC = () => {
 
   const handleAssetAdded = (newAsset: AssetItem) => {
     setAssets((prev) => [newAsset, ...prev]);
-    showToast(`"${newAsset.name}" added to library!`, 'success');
+    showToast(`"${newAsset.name}" добавлен в библиотеку!`, 'success');
   };
 
   // Filtered Assets
@@ -244,9 +244,9 @@ export const App: React.FC = () => {
             <div className="p-3 bg-adobe-accent/20 text-adobe-accent rounded-full animate-bounce">
               <Upload className="w-8 h-8" />
             </div>
-            <h3 className="text-sm font-bold text-white">Drop to Add to BiblioPard</h3>
+            <h3 className="text-sm font-bold text-white">Перетащите для добавления в BiblioPard</h3>
             <p className="text-xs text-[#999999]">
-              3D models (.glb, .gltf, .obj), HDR maps (.hdr, .exr), or PBR material texture sets
+              3D-модели (.glb, .gltf, .obj), HDR-карты (.hdr, .exr) или PBR-текстуры
             </p>
           </div>
         </div>
@@ -328,12 +328,12 @@ export const App: React.FC = () => {
         onAssetUpdated={(updated) => {
           setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
           setEditingAsset(null);
-          showToast(`"${updated.name}" updated successfully!`, 'success');
+          showToast(`"${updated.name}" успешно обновлен!`, 'success');
         }}
         onAssetDeleted={(deletedId) => {
           setAssets((prev) => prev.filter((a) => a.id !== deletedId));
           setEditingAsset(null);
-          showToast('Asset deleted from library', 'info');
+          showToast('Ассет удален из библиотеки', 'info');
         }}
       />
 

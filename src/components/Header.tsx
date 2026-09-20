@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-[9px] font-mono text-[#888888] bg-[#252525] px-1 py-0.2 rounded">v0.0.1</span>
             {getHostBadge()}
           </div>
-          <p className="text-[9px] text-adobe-muted leading-none">3D & Media Asset Hub</p>
+          <p className="text-[9px] text-adobe-muted leading-none">Библиотека 3D и медиа-ассетов</p>
         </div>
       </div>
 
@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/50 text-amber-300 text-[10px] font-medium hover:scale-105 transition-transform"
         >
           <ArrowUpCircle className="w-3 h-3 text-amber-400 animate-pulse" />
-          <span>Update v{updateInfo.version}</span>
+          <span>Обновление v{updateInfo.version}</span>
         </button>
       )}
 
@@ -87,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search 3D models, PBR materials, HDR..."
+          placeholder="Поиск 3D-моделей, материалов, HDR..."
           className="w-full bg-[#141414] border border-[#333333] hover:border-[#444444] focus:border-adobe-accent rounded-md py-1 pl-8 pr-3 text-xs text-white placeholder-[#737373] focus:outline-none transition-colors"
         />
       </div>
@@ -98,17 +98,17 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onImportFromAE}
           disabled={isImportingFromAE}
-          title="Add selected item from After Effects Project panel into Library"
+          title="Добавить выделенный файл из проекта After Effects в библиотеку"
           className="flex items-center gap-1 bg-[#282828] hover:bg-[#333333] text-[#cccccc] hover:text-white px-2 py-1.5 rounded-md font-medium text-xs transition-colors border border-[#3c3c3c] active:scale-95"
         >
           <DownloadCloud className={`w-3.5 h-3.5 text-purple-400 ${isImportingFromAE ? 'animate-bounce' : ''}`} />
-          <span className="hidden sm:inline">From AE</span>
+          <span className="hidden sm:inline">Из проекта AE</span>
         </button>
 
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          title="Refresh Library"
+          title="Обновить библиотеку"
           className="p-1.5 text-[#9a9a9a] hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-adobe-accent' : ''}`} />
@@ -116,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onOpenSettings}
-          title="Library Settings"
+          title="Настройки библиотеки"
           className="p-1.5 text-[#9a9a9a] hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors"
         >
           <Settings className="w-3.5 h-3.5" />
@@ -127,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-1 bg-adobe-accent hover:bg-adobe-accentHover text-white px-2.5 py-1.5 rounded-md font-medium text-xs transition-all shadow-sm active:scale-95"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Add Asset</span>
+          <span>Добавить ассет</span>
         </button>
       </div>
     </header>

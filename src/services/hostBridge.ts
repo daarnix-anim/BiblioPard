@@ -120,11 +120,11 @@ class HostBridge {
         );
         if (res && res.success) {
           const compMsg = res.data?.addedToComp 
-            ? ` and added to "${res.data.compName}"` 
-            : ` (imported to project)`;
-          return { success: true, message: `3D model "${asset.name}" imported${compMsg}` };
+            ? ` и добавлена в композицию "${res.data.compName}"` 
+            : ` (добавлена в проект)`;
+          return { success: true, message: `3D-модель "${asset.name}" импортирована${compMsg}` };
         } else {
-          return { success: false, message: res?.error || 'Failed to import 3D model' };
+          return { success: false, message: res?.error || 'Не удалось импортировать 3D-модель' };
         }
       }
 
@@ -134,9 +134,9 @@ class HostBridge {
           `BiblioPardAE.importEnvironmentLight(${JSON.stringify(payload)})`
         );
         if (res && res.success) {
-          return { success: true, message: `Environment Light "${asset.name}" created in "${res.data?.compName || 'project'}"` };
+          return { success: true, message: `Карта света "${asset.name}" добавлена в "${res.data?.compName || 'проект'}"` };
         } else {
-          return { success: false, message: res?.error || 'Failed to import Environment Light' };
+          return { success: false, message: res?.error || 'Не удалось импортировать карту света' };
         }
       }
 
@@ -151,10 +151,10 @@ class HostBridge {
         if (res && res.success) {
           return {
             success: true,
-            message: `Material "${asset.name}" imported (${res.data?.importedCount || 0} maps) into "${res.data?.folderName}"`
+            message: `Материал "${asset.name}" импортирован (${res.data?.importedCount || 0} карт) в папку "${res.data?.folderName}"`
           };
         } else {
-          return { success: false, message: res?.error || 'Failed to import Material set' };
+          return { success: false, message: res?.error || 'Не удалось импортировать набор текстур материала' };
         }
       }
 
@@ -165,7 +165,7 @@ class HostBridge {
       );
       return {
         success: !!res?.success,
-        message: res?.success ? `Asset "${asset.name}" imported` : (res?.error || 'Import failed')
+        message: res?.success ? `Ассет "${asset.name}" импортирован` : (res?.error || 'Ошибка импорта')
       };
     }
 

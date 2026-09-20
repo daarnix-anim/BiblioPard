@@ -45,7 +45,7 @@ export const SidebarCategories: React.FC<SidebarCategoriesProps> = ({
     <aside className="w-48 bg-[#1a1a1a] border-r border-[#2d2d2d] flex flex-col shrink-0 p-2.5 overflow-y-auto">
       <div className="mb-2">
         <span className="text-[10px] font-semibold tracking-wider text-[#666666] uppercase px-2">
-          Categories
+          Категории
         </span>
       </div>
 
@@ -88,14 +88,14 @@ export const SidebarCategories: React.FC<SidebarCategoriesProps> = ({
         <div className="mt-6 pt-4 border-t border-[#2d2d2d]">
           <div className="flex items-center justify-between px-2 mb-2">
             <span className="text-[10px] font-semibold tracking-wider text-[#666666] uppercase flex items-center gap-1">
-              <Tag className="w-3 h-3" /> Tags
+              <Tag className="w-3 h-3" /> Теги
             </span>
             {selectedTag && (
               <button
                 onClick={() => onSelectTag(null)}
                 className="text-[10px] text-adobe-accent hover:underline"
               >
-                Clear
+                Сбросить
               </button>
             )}
           </div>

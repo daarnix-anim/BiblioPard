@@ -65,7 +65,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
 
   const handleSaveMetadata = async () => {
     if (!name.trim()) {
-      setMsg({ text: 'Asset name cannot be empty', type: 'error' });
+      setMsg({ text: 'Название ассета не может быть пустым', type: 'error' });
       return;
     }
 
@@ -82,10 +82,10 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
       });
 
       onAssetUpdated(updated);
-      setMsg({ text: 'Metadata updated successfully!', type: 'success' });
+      setMsg({ text: 'Метаданные успешно обновлены!', type: 'success' });
       setTimeout(() => onClose(), 800);
     } catch (err: any) {
-      setMsg({ text: 'Failed to update metadata: ' + (err?.message || err), type: 'error' });
+      setMsg({ text: 'Ошибка обновления метаданных: ' + (err?.message || err), type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -101,11 +101,11 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
       const updated = await libraryManager.replaceAssetFile(asset, aeSelection.filePath);
       onAssetUpdated(updated);
       setMsg({
-        text: `Asset file replaced with "${aeSelection.name}"!`,
+        text: `Файл ассета успешно заменен на "${aeSelection.name}"!`,
         type: 'success'
       });
     } catch (err: any) {
-      setMsg({ text: 'Failed to replace file: ' + (err?.message || err), type: 'error' });
+      setMsg({ text: 'Ошибка замены файла: ' + (err?.message || err), type: 'error' });
     } finally {
       setIsReplacing(false);
     }
@@ -123,7 +123,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
       onAssetDeleted(asset.id);
       onClose();
     } catch (err: any) {
-      setMsg({ text: 'Failed to delete asset: ' + (err?.message || err), type: 'error' });
+      setMsg({ text: 'Ошибка удаления ассета: ' + (err?.message || err), type: 'error' });
       setIsDeleting(false);
     }
   };
@@ -134,8 +134,8 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#2e2e2e] bg-[#161616] flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-sm text-white">Edit Asset Details</h2>
-            <p className="text-[10px] text-[#808080]">Format: .{asset.format.toUpperCase()} • ID: {asset.name}</p>
+            <h2 className="font-semibold text-sm text-white">Редактирование ассета</h2>
+            <p className="text-[10px] text-[#808080]">Формат: .{asset.format.toUpperCase()} • {asset.name}</p>
           </div>
           <button
             onClick={onClose}
@@ -159,7 +159,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
           {/* File Location Info */}
           <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-2.5 flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <span className="block text-[9px] text-[#777777] uppercase font-mono tracking-wider">File Location</span>
+              <span className="block text-[9px] text-[#777777] uppercase font-mono tracking-wider">Расположение файла на диске</span>
               <span className="block text-[11px] text-[#cccccc] font-mono truncate" title={asset.filePath}>
                 {asset.filePath}
               </span>
@@ -167,7 +167,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
             <button
               type="button"
               onClick={() => hostBridge.revealInExplorer(asset.filePath)}
-              title="Show in File Explorer"
+              title="Показать в Проводнике Windows"
               className="p-1.5 bg-[#252525] hover:bg-[#333333] text-[#aaaaaa] hover:text-white rounded text-xs transition-colors shrink-0 border border-[#3a3a3a]"
             >
               <FolderOpen className="w-3.5 h-3.5" />
@@ -176,7 +176,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
 
           {/* Form Fields */}
           <div>
-            <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Asset Name</label>
+            <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Название ассета</label>
             <input
               type="text"
               value={name}
@@ -187,7 +187,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Category</label>
+              <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Категория</label>
               <input
                 type="text"
                 value={category}
@@ -196,7 +196,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Tags (comma separated)</label>
+              <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Теги (через запятую)</label>
               <input
                 type="text"
                 value={tags}
@@ -207,12 +207,12 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
           </div>
 
           <div>
-            <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Description</label>
+            <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Описание ассета</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="Add notes, scale, shaders info..."
+              placeholder="Заметки, масштаб, рекомендации по материалам..."
               className="w-full bg-[#141414] border border-[#333333] focus:border-adobe-accent rounded px-2.5 py-1.5 text-xs text-white focus:outline-none resize-none"
             />
           </div>
@@ -220,7 +220,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
           {/* Update from AE Section */}
           <div className="pt-3 border-t border-[#2d2d2d]">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-[#cccccc]">Update File from After Effects</span>
+              <span className="text-[11px] font-semibold text-[#cccccc]">Обновить файл из проекта After Effects</span>
               <button
                 type="button"
                 onClick={checkAeSelection}
@@ -228,7 +228,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
                 className="text-[10px] text-adobe-accent hover:underline flex items-center gap-1"
               >
                 <RefreshCw className={`w-3 h-3 ${isCheckingAe ? 'animate-spin' : ''}`} />
-                <span>Check AE Selection</span>
+                <span>Проверить выделение в AE</span>
               </button>
             </div>
 
@@ -246,12 +246,12 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
                     className="shrink-0 flex items-center gap-1 px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-[11px] font-medium transition-all shadow-sm"
                   >
                     {isReplacing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                    <span>Replace File</span>
+                    <span>Заменить файл</span>
                   </button>
                 </div>
               ) : (
                 <p className="text-[10px] text-[#737373]">
-                  Select an item in After Effects Project panel to update this asset with a newer version.
+                  Выделите элемент в панели Project After Effects, чтобы обновить этот ассет на более новый.
                 </p>
               )}
             </div>
@@ -260,8 +260,8 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
           {/* Danger Zone: Delete Asset */}
           <div className="pt-3 border-t border-[#2d2d2d] flex items-center justify-between">
             <div>
-              <span className="text-red-400 font-medium block">Delete from Library</span>
-              <span className="text-[10px] text-[#737373]">Removes files and folder from disk</span>
+              <span className="text-red-400 font-medium block">Удалить из библиотеки</span>
+              <span className="text-[10px] text-[#737373]">Удаляет файл, превью и папку ассета с диска</span>
             </div>
 
             <button
@@ -275,7 +275,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
               }`}
             >
               <Trash2 className="w-3 h-3" />
-              <span>{confirmDelete ? 'Confirm Delete?' : 'Delete'}</span>
+              <span>{confirmDelete ? 'Точно удалить?' : 'Удалить'}</span>
             </button>
           </div>
         </div>
@@ -287,7 +287,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
             onClick={onClose}
             className="px-3 py-1.5 text-xs text-[#aaaaaa] hover:text-white rounded hover:bg-[#282828] transition-colors"
           >
-            Cancel
+            Отмена
           </button>
           <button
             type="button"
@@ -296,7 +296,7 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
             className="flex items-center gap-1.5 px-4 py-1.5 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded text-xs font-medium shadow transition-all active:scale-95 disabled:opacity-50"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            <span>Save Changes</span>
+            <span>Сохранить изменения</span>
           </button>
         </div>
       </div>

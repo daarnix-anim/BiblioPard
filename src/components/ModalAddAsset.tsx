@@ -97,7 +97,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
               }
             }, 300);
           } catch (err: any) {
-            setErrorMsg('Failed to render Material preview: ' + (err?.message || err));
+            setErrorMsg('Не удалось создать превью материала: ' + (err?.message || err));
           }
         }
         return;
@@ -105,7 +105,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
     }
 
     if (!is3D && !isHDR) {
-      setErrorMsg('Unsupported format. Please upload .glb, .gltf, .obj, .hdr, or PBR texture images');
+      setErrorMsg('Неподдерживаемый формат. Загрузите .glb, .gltf, .obj, .hdr или текстуры PBR');
       return;
     }
 
@@ -134,7 +134,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
           }
         }, 300);
       } catch (err: any) {
-        setErrorMsg('Failed to render 3D preview: ' + (err?.message || err));
+        setErrorMsg('Не удалось создать 3D-превью: ' + (err?.message || err));
       }
     }
   };
@@ -155,7 +155,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
       const { base64 } = await createGifFromFrames(frames, 20);
       setPreviewGif(base64);
     } catch (err: any) {
-      setErrorMsg('GIF generation error: ' + (err?.message || err));
+      setErrorMsg('Ошибка создания GIF: ' + (err?.message || err));
     } finally {
       setIsGeneratingGif(false);
     }
@@ -163,11 +163,11 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
 
   const handleSave = async () => {
     if (!file) {
-      setErrorMsg('Please select a 3D or HDR file');
+      setErrorMsg('Пожалуйста, выберите 3D-файл или карту HDR');
       return;
     }
     if (!name.trim()) {
-      setErrorMsg('Please enter an asset name');
+      setErrorMsg('Пожалуйста, введите название ассета');
       return;
     }
 
@@ -191,7 +191,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
       onAssetAdded(newAsset);
       onClose();
     } catch (err: any) {
-      setErrorMsg('Failed to save asset: ' + (err?.message || err));
+      setErrorMsg('Ошибка сохранения ассета: ' + (err?.message || err));
     } finally {
       setIsSaving(false);
     }
@@ -207,8 +207,8 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
               {assetType === '3d-model' ? <Box className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </div>
             <div>
-              <h2 className="font-semibold text-sm text-white">Add Asset to Library</h2>
-              <p className="text-[10px] text-[#808080]">Support GLB, GLTF, OBJ, HDR, EXR</p>
+              <h2 className="font-semibold text-sm text-white">Добавить ассет в библиотеку</h2>
+              <p className="text-[10px] text-[#808080]">Форматы: GLB, GLTF, OBJ, HDR, EXR и PBR-материалы</p>
             </div>
           </div>
           <button
@@ -232,21 +232,33 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Left: 3D Preview Viewport */}
             <div className="flex flex-col gap-2">
-              <span className="text-[11px] font-medium text-[#aaaaaa]">Interactive 3D Viewport</span>
+              <span className="text-[11px] font-medium text-[#aaaaaa]">Интерактивный 3D-просмотр</span>
               <div
-                ref={viewportRef}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleFileDrop}
-                className="relative aspect-square w-full bg-[#121212] border border-[#333333] rounded-lg overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing"
+                className="relative aspect-square w-full bg-[#121212] border border-[#333333] rounded-lg overflow-hidden flex items-center justify-center"
               >
+                {/* 3D Canvas Viewport */}
+                <div
+                  ref={viewportRef}
+                  className="w-full h-full cursor-grab active:cursor-grabbing"
+                />
+
+                {/* Dropzone Overlay when no file is selected */}
                 {!file && (
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex flex-col items-center justify-center p-4 text-center cursor-pointer hover:bg-white/[0.02] transition-colors"
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center cursor-pointer bg-black/50 hover:bg-black/40 transition-colors"
                   >
-                    <Upload className="w-8 h-8 text-[#555555] mb-2" />
-                    <p className="text-xs font-medium text-white mb-1">Drag & Drop 3D or HDR file</p>
-                    <p className="text-[10px] text-[#777777]">or click to browse (.glb, .gltf, .obj, .hdr)</p>
+                    <div className="p-3 rounded-full bg-white/5 mb-2.5 border border-white/10">
+                      <Upload className="w-6 h-6 text-adobe-accent" />
+                    </div>
+                    <p className="text-xs font-semibold text-white mb-1">
+                      Перетащите сюда 3D-модель или HDR
+                    </p>
+                    <p className="text-[10px] text-[#aaaaaa] leading-relaxed">
+                      или нажмите для выбора файла<br />(.glb, .gltf, .obj, .hdr, .exr)
+                    </p>
                   </div>
                 )}
               </div>
@@ -260,7 +272,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
                     className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-[#2a2a2a] hover:bg-[#383838] text-white rounded text-xs transition-colors border border-[#3d3d3d]"
                   >
                     <Camera className="w-3.5 h-3.5" />
-                    <span>Snapshot</span>
+                    <span>Снимок превью</span>
                   </button>
 
                   {assetType === '3d-model' && (
@@ -275,7 +287,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
                       ) : (
                         <Film className="w-3.5 h-3.5 text-purple-400" />
                       )}
-                      <span>{isGeneratingGif ? 'Rendering...' : '360° GIF'}</span>
+                      <span>{isGeneratingGif ? 'Рендеринг...' : '360° GIF'}</span>
                     </button>
                   )}
                 </div>
@@ -285,59 +297,59 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
             {/* Right: Metadata Form */}
             <div className="space-y-3">
               <div>
-                <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Asset Name</label>
+                <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Название ассета</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Cyberpunk Hovercar"
+                  placeholder="например, Cyberpunk Hovercar"
                   className="w-full bg-[#161616] border border-[#333333] focus:border-adobe-accent rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Type</label>
+                  <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Тип</label>
                   <select
                     value={assetType}
                     onChange={(e) => setAssetType(e.target.value as AssetType)}
                     className="w-full bg-[#161616] border border-[#333333] focus:border-adobe-accent rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
                   >
-                    <option value="3d-model">3D Model</option>
-                    <option value="pbr-material">PBR Material</option>
-                    <option value="environment-light">Environment Light (HDR)</option>
+                    <option value="3d-model">3D-модель</option>
+                    <option value="pbr-material">PBR-материал</option>
+                    <option value="environment-light">Окружение / Свет (HDR)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Category</label>
+                  <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Категория</label>
                   <input
                     type="text"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    placeholder="e.g. SciFi, Metal, Studio"
+                    placeholder="например, SciFi, Металл, Студия"
                     className="w-full bg-[#161616] border border-[#333333] focus:border-adobe-accent rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Tags (comma separated)</label>
+                <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Теги (через запятую)</label>
                 <input
                   type="text"
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
-                  placeholder="SciFi, Vehicle, Cyberpunk"
+                  placeholder="SciFi, Техника, Киберпанк"
                   className="w-full bg-[#161616] border border-[#333333] focus:border-adobe-accent rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Description (optional)</label>
+                <label className="block text-[11px] font-medium text-[#aaaaaa] mb-1">Описание (необязательно)</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
-                  placeholder="Notes, scale suggestions, materials info..."
+                  placeholder="Заметки, масштаб, рекомендации по материалам..."
                   className="w-full bg-[#161616] border border-[#333333] focus:border-adobe-accent rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none resize-none"
                 />
               </div>
@@ -346,12 +358,12 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
               <div className="pt-2 border-t border-[#2e2e2e] flex items-center gap-3">
                 <div className="flex items-center gap-1.5 text-[10px] text-[#aaaaaa]">
                   <span className={`w-2 h-2 rounded-full ${previewPng ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  <span>Snapshot: {previewPng ? 'Ready' : 'Pending'}</span>
+                  <span>Превью: {previewPng ? 'Готово' : 'Ожидает'}</span>
                 </div>
                 {(assetType === '3d-model' || assetType === 'pbr-material') && (
                   <div className="flex items-center gap-1.5 text-[10px] text-[#aaaaaa]">
                     <span className={`w-2 h-2 rounded-full ${previewGif ? 'bg-emerald-500' : 'bg-[#555555]'}`} />
-                    <span>360° GIF: {previewGif ? 'Generated' : 'Optional'}</span>
+                    <span>360° GIF: {previewGif ? 'Готов' : 'Необязательно'}</span>
                   </div>
                 )}
               </div>
@@ -379,7 +391,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
             onClick={onClose}
             className="px-3 py-1.5 text-xs text-[#aaaaaa] hover:text-white rounded-md hover:bg-[#282828] transition-colors"
           >
-            Cancel
+            Отмена
           </button>
           <button
             type="button"
@@ -388,7 +400,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
             className="flex items-center gap-1.5 px-4 py-1.5 bg-adobe-accent hover:bg-adobe-accentHover disabled:opacity-50 disabled:pointer-events-none text-white rounded-md text-xs font-medium shadow transition-colors"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-            <span>{isSaving ? 'Saving...' : 'Save to Library'}</span>
+            <span>{isSaving ? 'Сохранение...' : 'Сохранить в библиотеку'}</span>
           </button>
         </div>
       </div>
