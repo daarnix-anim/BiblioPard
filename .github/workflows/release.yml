@@ -33,7 +33,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME:-v0.0.1}
           mkdir -p release-pkg
-          cp -r CSXS dist jsx public install.bat .debug package.json README.md release-pkg/
+          cp -r CSXS dist jsx public build-scripts install.bat uninstall.bat .debug package.json README.md release-pkg/
           cd release-pkg
           zip -r "../BiblioPard-${VERSION}.zip" ./*
           cd ..
