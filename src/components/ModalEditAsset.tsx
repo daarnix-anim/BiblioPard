@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, RefreshCw, Trash2, AlertTriangle, FileCode, Check, Loader2 } from 'lucide-react';
+import { X, Save, RefreshCw, Trash2, AlertTriangle, FileCode, Check, Loader2, FolderOpen } from 'lucide-react';
 import { AssetItem, ProjectItem } from '../types';
 import { hostBridge } from '../services/hostBridge';
 import { libraryManager } from '../services/libraryManager';
@@ -155,6 +155,24 @@ export const ModalEditAsset: React.FC<ModalEditAssetProps> = ({
               <span>{msg.text}</span>
             </div>
           )}
+
+          {/* File Location Info */}
+          <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-2.5 flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <span className="block text-[9px] text-[#777777] uppercase font-mono tracking-wider">File Location</span>
+              <span className="block text-[11px] text-[#cccccc] font-mono truncate" title={asset.filePath}>
+                {asset.filePath}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => hostBridge.revealInExplorer(asset.filePath)}
+              title="Show in File Explorer"
+              className="p-1.5 bg-[#252525] hover:bg-[#333333] text-[#aaaaaa] hover:text-white rounded text-xs transition-colors shrink-0 border border-[#3a3a3a]"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Form Fields */}
           <div>

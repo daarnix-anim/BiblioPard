@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Sun, Film, Type, Eye, Download, Sparkles, Palette, Edit3 } from 'lucide-react';
+import { Box, Sun, Film, Type, Eye, Download, Sparkles, Palette, Edit3, FolderOpen } from 'lucide-react';
 import { AssetItem } from '../types';
 
 interface AssetCardProps {
@@ -7,6 +7,7 @@ interface AssetCardProps {
   onImport: (asset: AssetItem) => Promise<void>;
   onOpenPreview: (asset: AssetItem) => void;
   onEdit?: (asset: AssetItem) => void;
+  onReveal?: (asset: AssetItem) => void;
   isImporting: boolean;
 }
 
@@ -15,6 +16,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
   onImport,
   onOpenPreview,
   onEdit,
+  onReveal,
   isImporting
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -177,16 +179,30 @@ export const AssetCard: React.FC<AssetCardProps> = ({
               </button>
             )}
           </div>
+          <div className="flex items-center gap-1.5">
+            {onReveal && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReveal(asset);
+                }}
+                title="Show in File Explorer / Open Folder"
+                className="p-1.5 bg-[#252525] hover:bg-[#333333] text-[#8e8e8e] hover:text-white rounded text-xs transition-colors border border-[#353535]"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+              </button>
+            )}
 
-          <button
-            onClick={() => onImport(asset)}
-            disabled={isImporting}
-            title="Import to After Effects"
-            className="flex items-center gap-1.5 px-3 py-1 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded text-xs font-medium shadow-sm transition-transform active:scale-95 disabled:opacity-50"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>{isImporting ? 'Importing...' : 'Import'}</span>
-          </button>
+            <button
+              onClick={() => onImport(asset)}
+              disabled={isImporting}
+              title="Import to After Effects"
+              className="flex items-center gap-1.5 px-3 py-1 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded text-xs font-medium shadow-sm transition-transform active:scale-95 disabled:opacity-50"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isImporting ? 'Importing...' : 'Import'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

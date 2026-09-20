@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { getNodeFs } from './nodeBridge';
 
 export class ThreePreviewEngine {
   private container: HTMLElement;
@@ -116,16 +117,32 @@ export class ThreePreviewEngine {
 
       // Check if source is a local file path string
       let effectiveSource: string | ArrayBuffer = source;
-      if (typeof source === 'string' && typeof window !== 'undefined' && window.require) {
+      if (typeof source === 'string') {
         if (!source.startsWith('http://') && !source.startsWith('https://') && !source.startsWith('data:')) {
           try {
-            const fs = window.require('fs');
-            const clean = source.replace(/^file:\/\/\/?/i, '');
-            const winPath = clean.replace(/\//g, '\\');
-            const targetPath = fs.existsSync(clean) ? clean : (fs.existsSync(winPath) ? winPath : null);
-            if (targetPath) {
-              const buf = fs.readFileSync(targetPath);
-              effectiveSource = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+            const fs = getNodeFs();
+            if (fs) {
+              const clean = source.replace(/^file:\/\/\/?/i, '');
+              const winPath = clean.replace(/\//g, '\\');
+              let targetPath = fs.existsSync(clean) ? clean : (fs.existsSync(winPath) ? winPath : null);
+
+              // Auto-fallback: if path has legacy C:/BiblioPard/Library, try resolving against user's configured libraryRoot
+              if (!targetPath && /^[cC]:[/\\]BiblioPard[/\\]Library/i.test(clean)) {
+                try {
+                  const saved = localStorage.getItem('bibliopard_settings');
+                  const settings = saved ? JSON.parse(saved) : null;
+                  if (settings && settings.libraryRoot) {
+                    const migrated = clean.replace(/^[cC]:[/\\]BiblioPard[/\\]Library/i, settings.libraryRoot);
+                    const migratedWin = migrated.replace(/\//g, '\\');
+                    targetPath = fs.existsSync(migrated) ? migrated : (fs.existsSync(migratedWin) ? migratedWin : null);
+                  }
+                } catch {}
+              }
+
+              if (targetPath) {
+                const buf = fs.readFileSync(targetPath);
+                effectiveSource = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+              }
             }
           } catch (e) {
             console.warn('[ThreePreview] Local file read error:', e);
@@ -203,11 +220,29 @@ export class ThreePreviewEngine {
         resolve();
       };
 
-      if (typeof source === 'string') {
-        loader.load(source, onLoad, undefined, reject);
+      let effectiveSource: string | ArrayBuffer = source;
+      if (typeof source === 'string' && !source.startsWith('http://') && !source.startsWith('https://') && !source.startsWith('data:')) {
+        try {
+          const fs = getNodeFs();
+          if (fs) {
+            const clean = source.replace(/^file:\/\/\/?/i, '');
+            const winPath = clean.replace(/\//g, '\\');
+            const targetPath = fs.existsSync(clean) ? clean : (fs.existsSync(winPath) ? winPath : null);
+            if (targetPath) {
+              const buf = fs.readFileSync(targetPath);
+              effectiveSource = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+            }
+          }
+        } catch (e) {
+          console.warn('[ThreePreview] Local HDR file read error:', e);
+        }
+      }
+
+      if (typeof effectiveSource === 'string') {
+        loader.load(effectiveSource, onLoad, undefined, reject);
       } else {
         try {
-          const blob = new Blob([source]);
+          const blob = new Blob([effectiveSource]);
           const blobUrl = URL.createObjectURL(blob);
           loader.load(
             blobUrl,

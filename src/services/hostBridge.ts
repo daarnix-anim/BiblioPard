@@ -211,6 +211,103 @@ class HostBridge {
     }
     return [];
   }
+
+  /**
+   * Reveal file or directory in Windows Explorer or macOS Finder
+   */
+  public async revealInExplorer(filePath: string): Promise<boolean> {
+    if (!filePath) return false;
+
+    // 1. Try Node.js child_process (best on Windows: selects file in Explorer)
+    try {
+      const w = typeof window !== 'undefined' ? (window as any) : null;
+      const req = w?.require || w?.cep_node?.require || (typeof require === 'function' ? require : null);
+      if (req) {
+        const cp = req('child_process');
+        const fs = req('fs');
+        const cleanPath = filePath.replace(/^file:\/\/\/?/i, '').replace(/\//g, '\\');
+        if (fs.existsSync(cleanPath)) {
+          const stat = fs.statSync(cleanPath);
+          if (stat.isDirectory()) {
+            cp.exec(`explorer.exe "${cleanPath}"`);
+          } else {
+            cp.exec(`explorer.exe /select,"${cleanPath}"`);
+          }
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Node explorer reveal error:', e);
+    }
+
+    // 2. Try ExtendScript reveal
+    try {
+      const cleanPath = filePath.replace(/^file:\/\/\/?/i, '');
+      const res = await this.evalScript<{ success: boolean; error?: string }>(
+        `BiblioPardAE.revealFile(${JSON.stringify(cleanPath)})`
+      );
+      if (res && res.success) return true;
+    } catch (e) {
+      console.warn('ExtendScript reveal error:', e);
+    }
+
+    // 3. Fallback: window.cep.util.openURLInDefaultBrowser
+    try {
+      const clean = filePath.replace(/^file:\/\/\/?/i, '');
+      const lastSlash = Math.max(clean.lastIndexOf('/'), clean.lastIndexOf('\\'));
+      const parentDir = lastSlash !== -1 ? clean.substring(0, lastSlash) : clean;
+      if ((window as any).cep && (window as any).cep.util) {
+        (window as any).cep.util.openURLInDefaultBrowser('file:///' + parentDir.replace(/\\/g, '/'));
+        return true;
+      }
+    } catch {}
+
+    return false;
+  }
+
+  /**
+   * Copy file via ExtendScript
+   */
+  public async copyFile(srcPath: string, dstPath: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const payload = JSON.stringify({ srcPath, dstPath });
+      const res = await this.evalScript<{ success: boolean; error?: string }>(
+        `BiblioPardAE.copyFile(${JSON.stringify(payload)})`
+      );
+      return { success: !!res?.success, message: res?.error || '' };
+    } catch (e: any) {
+      return { success: false, message: e.toString() };
+    }
+  }
+
+  /**
+   * Write text file via ExtendScript
+   */
+  public async writeTextFile(filePath: string, content: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const payload = JSON.stringify({ filePath, content });
+      const res = await this.evalScript<{ success: boolean; error?: string }>(
+        `BiblioPardAE.writeTextFile(${JSON.stringify(payload)})`
+      );
+      return { success: !!res?.success, message: res?.error || '' };
+    } catch (e: any) {
+      return { success: false, message: e.toString() };
+    }
+  }
+
+  /**
+   * Ensure directory exists via ExtendScript
+   */
+  public async ensureFolder(folderPath: string): Promise<boolean> {
+    try {
+      const res = await this.evalScript<{ success: boolean }>(
+        `BiblioPardAE.ensureFolder(${JSON.stringify(folderPath)})`
+      );
+      return !!res?.success;
+    } catch {
+      return false;
+    }
+  }
 }
 
 export const hostBridge = new HostBridge();

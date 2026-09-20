@@ -128,6 +128,17 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleRevealAsset = async (asset: AssetItem) => {
+    try {
+      const ok = await hostBridge.revealInExplorer(asset.filePath);
+      if (!ok) {
+        showToast(`Could not open file location: ${asset.filePath}`, 'error');
+      }
+    } catch (err: any) {
+      showToast('Error opening file location: ' + (err?.message || err), 'error');
+    }
+  };
+
   /**
    * Import selected items from After Effects Project Panel directly
    */
@@ -277,6 +288,7 @@ export const App: React.FC = () => {
             onOpenPreview={(asset) => setPreviewAsset(asset)}
             onOpenAddModal={() => setIsAddModalOpen(true)}
             onEditAsset={(asset) => setEditingAsset(asset)}
+            onRevealAsset={handleRevealAsset}
             importingAssetId={importingAssetId}
           />
         </main>

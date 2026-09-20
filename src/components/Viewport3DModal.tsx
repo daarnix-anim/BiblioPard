@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X, Grid, Download, Loader2, Maximize2, Sun, Box, Info, Palette, Edit3 } from 'lucide-react';
 import { AssetItem } from '../types';
 import { ThreePreviewEngine } from '../services/threePreview';
+import { getNodeFs } from '../services/nodeBridge';
 
 interface Viewport3DModalProps {
   asset: AssetItem | null;
@@ -41,19 +42,33 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
         let fileSource: string | ArrayBuffer = asset.filePath;
 
         // In CEP with Node.js, we can read local file as Buffer if needed
-        if (typeof window !== 'undefined' && window.require) {
-          try {
-            const fs = window.require('fs');
+        try {
+          const fs = getNodeFs();
+          if (fs) {
             const raw = asset.filePath.replace(/^file:\/\/\/?/i, '');
             const win = raw.replace(/\//g, '\\');
-            const target = fs.existsSync(raw) ? raw : (fs.existsSync(win) ? win : null);
+            let target = fs.existsSync(raw) ? raw : (fs.existsSync(win) ? win : null);
+
+            // Auto-fallback: if path has legacy C:/BiblioPard/Library, try resolving against user's configured libraryRoot
+            if (!target && /^[cC]:[/\\]BiblioPard[/\\]Library/i.test(raw)) {
+              try {
+                const saved = localStorage.getItem('bibliopard_settings');
+                const settings = saved ? JSON.parse(saved) : null;
+                if (settings && settings.libraryRoot) {
+                  const migrated = raw.replace(/^[cC]:[/\\]BiblioPard[/\\]Library/i, settings.libraryRoot);
+                  const migratedWin = migrated.replace(/\//g, '\\');
+                  target = fs.existsSync(migrated) ? migrated : (fs.existsSync(migratedWin) ? migratedWin : null);
+                }
+              } catch {}
+            }
+
             if (target) {
               const buffer = fs.readFileSync(target);
               fileSource = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
             }
-          } catch (e) {
-            console.warn('Direct file read fallback:', e);
           }
+        } catch (e) {
+          console.warn('Direct file read fallback:', e);
         }
 
         if (asset.type === '3d-model') {

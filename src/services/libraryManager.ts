@@ -1,25 +1,22 @@
 import { AssetItem, AssetType, Category, LibrarySettings, MaterialMaps } from '../types';
 import { materialManager } from './materialManager';
+import { hostBridge } from './hostBridge';
+import { getNodeFs, getNodePath, isNodeAvailable } from './nodeBridge';
 
 export class LibraryManager {
   private settingsKey = 'bibliopard_settings';
   private localAssetsKey = 'bibliopard_mock_assets';
-  private fs: any = null;
-  private path: any = null;
 
-  constructor() {
-    if (typeof window !== 'undefined' && window.require) {
-      try {
-        this.fs = window.require('fs');
-        this.path = window.require('path');
-      } catch (e) {
-        console.warn('Node.js fs/path not accessible in this context:', e);
-      }
-    }
+  public get fs(): any {
+    return getNodeFs();
+  }
+
+  public get path(): any {
+    return getNodePath();
   }
 
   public isNodeAvailable(): boolean {
-    return !!(this.fs && this.path);
+    return isNodeAvailable();
   }
 
   public getSettings(): LibrarySettings {
@@ -61,6 +58,8 @@ export class LibraryManager {
    */
   public async loadAssets(): Promise<AssetItem[]> {
     const settings = this.getSettings();
+    // Get and sanitize any assets stored in localStorage
+    const mockAssets = this.getMockAssets();
 
     if (this.isNodeAvailable()) {
       try {
@@ -68,14 +67,19 @@ export class LibraryManager {
         if (!this.fs.existsSync(root)) {
           this.ensureDefaultLibraryStructure(root);
         }
-        return this.scanDirectory(root);
+        const scanned = this.scanDirectory(root);
+        if (scanned && scanned.length > 0) {
+          const scannedPaths = new Set(scanned.map(s => s.filePath.replace(/\\/g, '/').toLowerCase()));
+          const extra = mockAssets.filter(m => !scannedPaths.has(m.filePath.replace(/\\/g, '/').toLowerCase()));
+          return [...scanned, ...extra];
+        }
       } catch (err) {
         console.error('Error scanning library on disk:', err);
       }
     }
 
-    // Fallback: Browser local storage (for browser dev testing)
-    return this.getMockAssets();
+    // Fallback: Browser local storage (for browser dev testing or if disk scan was empty)
+    return mockAssets;
   }
 
   /**
@@ -250,6 +254,7 @@ export class LibraryManager {
   public async addAsset(params: {
     name: string;
     file: File;
+    sourcePath?: string;
     type: AssetType;
     category: string;
     tags: string[];
@@ -259,42 +264,97 @@ export class LibraryManager {
   }): Promise<AssetItem> {
     const settings = this.getSettings();
     const ext = params.file.name.split('.').pop()?.toLowerCase() || '';
+    const safeName = params.name.replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, '_');
+    const typeFolder = params.type === '3d-model' ? '3D_Models' : (params.type === 'pbr-material' ? 'Materials' : 'Environment_Lights');
+
+    // Clean normalized library path
+    const rootNorm = settings.libraryRoot.replace(/\\/g, '/').replace(/\/+$/, '');
+    const categoryDir = `${rootNorm}/${typeFolder}/${params.category}`;
+    const assetDir = `${categoryDir}/${safeName}`;
+    const targetFilePath = `${assetDir}/${safeName}.${ext}`;
+
+    const srcDiskPath = params.sourcePath || (params.file as any)?.path;
 
     if (this.isNodeAvailable()) {
-      const categoryDir = this.path.join(settings.libraryRoot, params.type === '3d-model' ? '3D_Models' : 'Environment_Lights', params.category);
-      const safeName = params.name.replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, '_');
-      const assetDir = this.path.join(categoryDir, safeName);
+      try {
+        if (!this.fs.existsSync(assetDir)) {
+          this.fs.mkdirSync(assetDir, { recursive: true });
+        }
 
-      if (!this.fs.existsSync(assetDir)) {
-        this.fs.mkdirSync(assetDir, { recursive: true });
+        // Copy original file if local path is available, otherwise write buffer
+        if (srcDiskPath && this.fs.existsSync(srcDiskPath)) {
+          this.fs.copyFileSync(srcDiskPath, targetFilePath);
+        } else {
+          const arrayBuffer = await params.file.arrayBuffer();
+          this.fs.writeFileSync(targetFilePath, Buffer.from(arrayBuffer));
+        }
+
+        let previewPngPath: string | undefined;
+        let previewGifPath: string | undefined;
+
+        // Save preview PNG
+        if (params.previewPngBase64) {
+          const pngPath = this.path.join(assetDir, 'preview.png');
+          const base64Data = params.previewPngBase64.replace(/^data:image\/\w+;base64,/, '');
+          this.fs.writeFileSync(pngPath, Buffer.from(base64Data, 'base64'));
+          previewPngPath = 'file:///' + pngPath.replace(/\\/g, '/');
+        }
+
+        // Save preview GIF
+        if (params.previewGifBase64) {
+          const gifPath = this.path.join(assetDir, 'preview.gif');
+          const base64Data = params.previewGifBase64.replace(/^data:image\/\w+;base64,/, '');
+          this.fs.writeFileSync(gifPath, Buffer.from(base64Data, 'base64'));
+          previewGifPath = 'file:///' + gifPath.replace(/\\/g, '/');
+        }
+
+        // Write meta.json
+        const meta = {
+          id: targetFilePath,
+          name: params.name,
+          type: params.type,
+          format: ext,
+          category: params.category,
+          tags: params.tags,
+          description: params.description || '',
+          createdAt: new Date().toISOString()
+        };
+        this.fs.writeFileSync(this.path.join(assetDir, 'meta.json'), JSON.stringify(meta, null, 2));
+
+        const stat = this.fs.statSync(targetFilePath);
+
+        const newAsset: AssetItem = {
+          id: targetFilePath,
+          name: params.name,
+          type: params.type,
+          format: ext,
+          filePath: targetFilePath,
+          previewImage: previewPngPath,
+          previewGif: previewGifPath,
+          category: params.category,
+          tags: params.tags,
+          fileSize: stat.size,
+          createdAt: meta.createdAt,
+          description: params.description
+        };
+
+        // Also update local mock cache
+        const currentMocks = this.getMockAssets().filter(a => a.id !== newAsset.id && a.filePath !== targetFilePath);
+        currentMocks.unshift(newAsset);
+        localStorage.setItem(this.localAssetsKey, JSON.stringify(currentMocks));
+
+        return newAsset;
+      } catch (nodeErr) {
+        console.warn('Node.js addAsset failed, falling back to ExtendScript/mock:', nodeErr);
       }
+    }
 
-      const targetFilePath = this.path.join(assetDir, `${safeName}.${ext}`);
-
-      // Write original file
-      const arrayBuffer = await params.file.arrayBuffer();
-      this.fs.writeFileSync(targetFilePath, Buffer.from(arrayBuffer));
-
-      let previewPngPath: string | undefined;
-      let previewGifPath: string | undefined;
-
-      // Save preview PNG
-      if (params.previewPngBase64) {
-        const pngPath = this.path.join(assetDir, 'preview.png');
-        const base64Data = params.previewPngBase64.replace(/^data:image\/\w+;base64,/, '');
-        this.fs.writeFileSync(pngPath, Buffer.from(base64Data, 'base64'));
-        previewPngPath = 'file:///' + pngPath.replace(/\\/g, '/');
+    // ExtendScript / Browser fallback
+    try {
+      await hostBridge.ensureFolder(assetDir);
+      if (srcDiskPath) {
+        await hostBridge.copyFile(srcDiskPath, targetFilePath);
       }
-
-      // Save preview GIF
-      if (params.previewGifBase64) {
-        const gifPath = this.path.join(assetDir, 'preview.gif');
-        const base64Data = params.previewGifBase64.replace(/^data:image\/\w+;base64,/, '');
-        this.fs.writeFileSync(gifPath, Buffer.from(base64Data, 'base64'));
-        previewGifPath = 'file:///' + gifPath.replace(/\\/g, '/');
-      }
-
-      // Write meta.json
       const meta = {
         id: targetFilePath,
         name: params.name,
@@ -305,31 +365,17 @@ export class LibraryManager {
         description: params.description || '',
         createdAt: new Date().toISOString()
       };
-      this.fs.writeFileSync(this.path.join(assetDir, 'meta.json'), JSON.stringify(meta, null, 2));
-
-      return {
-        id: targetFilePath,
-        name: params.name,
-        type: params.type,
-        format: ext,
-        filePath: targetFilePath,
-        previewImage: previewPngPath,
-        previewGif: previewGifPath,
-        category: params.category,
-        tags: params.tags,
-        fileSize: arrayBuffer.byteLength,
-        createdAt: meta.createdAt,
-        description: params.description
-      };
+      await hostBridge.writeTextFile(`${assetDir}/meta.json`, JSON.stringify(meta, null, 2));
+    } catch (e) {
+      console.warn('ExtendScript addAsset fallback:', e);
     }
 
-    // Mock storage fallback (in browser)
     const mockAsset: AssetItem = {
-      id: 'mock-' + Date.now(),
+      id: targetFilePath,
       name: params.name,
       type: params.type,
       format: ext,
-      filePath: `C:/BiblioPard/Library/${params.name}.${ext}`,
+      filePath: targetFilePath,
       previewImage: params.previewPngBase64,
       previewGif: params.previewGifBase64,
       category: params.category,
@@ -339,7 +385,7 @@ export class LibraryManager {
       description: params.description
     };
 
-    const currentMocks = this.getMockAssets();
+    const currentMocks = this.getMockAssets().filter(a => a.id !== mockAsset.id && a.filePath !== targetFilePath);
     currentMocks.unshift(mockAsset);
     localStorage.setItem(this.localAssetsKey, JSON.stringify(currentMocks));
     return mockAsset;
@@ -444,9 +490,11 @@ export class LibraryManager {
    * Delete asset from library and disk
    */
   public async deleteAsset(asset: AssetItem): Promise<boolean> {
+    const settings = this.getSettings();
+    let deletedOnDisk = false;
+
     if (this.isNodeAvailable()) {
       try {
-        const settings = this.getSettings();
         const rawPath = asset.filePath.replace(/^file:\/\/\/?/i, '');
         const assetDir = asset.type === 'pbr-material' ? rawPath : this.path.dirname(rawPath);
 
@@ -457,40 +505,62 @@ export class LibraryManager {
         if (normalizedDir.startsWith(normalizedRoot) && normalizedDir !== normalizedRoot) {
           if (this.fs.existsSync(assetDir)) {
             this.fs.rmSync(assetDir, { recursive: true, force: true });
-            return true;
+            deletedOnDisk = true;
           }
         }
       } catch (err) {
         console.error('Failed to delete asset directory:', err);
-        throw err;
       }
-    } else {
-      const mocks = this.getMockAssets().filter(a => a.id !== asset.id);
-      localStorage.setItem(this.localAssetsKey, JSON.stringify(mocks));
-      return true;
     }
-    return false;
+
+    // Always clean up from localStorage as well
+    const mocks = this.getMockAssets().filter(
+      a => a.id !== asset.id && a.filePath.toLowerCase() !== asset.filePath.toLowerCase()
+    );
+    localStorage.setItem(this.localAssetsKey, JSON.stringify(mocks));
+    return deletedOnDisk || true;
   }
 
   /**
    * Browser dev mock assets
    */
   private getMockAssets(): AssetItem[] {
+    const settings = this.getSettings();
+    const rootNorm = settings.libraryRoot.replace(/\\/g, '/').replace(/\/+$/, '');
+
     const saved = localStorage.getItem(this.localAssetsKey);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        let list: AssetItem[] = JSON.parse(saved);
+        if (Array.isArray(list)) {
+          let modified = false;
+          list = list.map((item) => {
+            // Automatically fix legacy C:/BiblioPard/Library paths
+            if (item.filePath && /^[cC]:[/\\]BiblioPard[/\\]Library/i.test(item.filePath)) {
+              modified = true;
+              return {
+                ...item,
+                filePath: item.filePath.replace(/^[cC]:[/\\]BiblioPard[/\\]Library/i, rootNorm)
+              };
+            }
+            return item;
+          });
+          if (modified) {
+            localStorage.setItem(this.localAssetsKey, JSON.stringify(list));
+          }
+          return list;
+        }
       } catch {}
     }
 
-    // Initial starter mock assets
+    // Initial starter mock assets pointing to the user's configured library root
     const sampleAssets: AssetItem[] = [
       {
         id: 'sample-1',
         name: 'Futuristic Drone Mk.II',
         type: '3d-model',
         format: 'glb',
-        filePath: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/3D_Models/SciFi/Drone_01.glb',
+        filePath: `${rootNorm}/3D_Models/SciFi/Drone_01.glb`,
         category: 'SciFi',
         tags: ['SciFi', 'Vehicle', 'Cyberpunk', 'GLB'],
         fileSize: 4250000,
@@ -502,7 +572,7 @@ export class LibraryManager {
         name: 'Studio Softbox 3-Point',
         type: 'environment-light',
         format: 'hdr',
-        filePath: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/Environment_Lights/Studio/Studio_Softbox.hdr',
+        filePath: `${rootNorm}/Environment_Lights/Studio/Studio_Softbox.hdr`,
         category: 'Studio',
         tags: ['Studio', 'Clean', 'Commercial', 'HDR'],
         fileSize: 8400000,
@@ -514,7 +584,7 @@ export class LibraryManager {
         name: 'Cyberpunk Neon Street',
         type: 'environment-light',
         format: 'exr',
-        filePath: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/Environment_Lights/Outdoor/Neon_Street.exr',
+        filePath: `${rootNorm}/Environment_Lights/Outdoor/Neon_Street.exr`,
         category: 'Outdoor',
         tags: ['Neon', 'Night', 'Reflections', 'EXR'],
         fileSize: 12500000,
@@ -526,7 +596,7 @@ export class LibraryManager {
         name: 'Mechanical Robot Arm',
         type: '3d-model',
         format: 'gltf',
-        filePath: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/3D_Models/Props/Robot_Arm.gltf',
+        filePath: `${rootNorm}/3D_Models/Props/Robot_Arm.gltf`,
         category: 'Props',
         tags: ['Industrial', 'Robotics', 'PBR', 'GLTF'],
         fileSize: 3100000,
@@ -538,17 +608,17 @@ export class LibraryManager {
         name: 'Brushed Titanium PBR',
         type: 'pbr-material',
         format: 'mat',
-        filePath: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/Materials/Metal/Brushed_Titanium',
+        filePath: `${rootNorm}/Materials/Metal/Brushed_Titanium`,
         category: 'Metal',
         tags: ['Metal', 'Titanium', 'PBR', 'Brushed'],
         fileSize: 18500000,
         createdAt: new Date().toISOString(),
         description: 'Realistic brushed titanium metal material with roughness and normal maps for AE 3D',
         materialMaps: {
-          baseColor: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/Materials/Metal/Brushed_Titanium/Titanium_BaseColor.png',
-          roughness: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/Materials/Metal/Brushed_Titanium/Titanium_Roughness.png',
-          metallic: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/Materials/Metal/Brushed_Titanium/Titanium_Metallic.png',
-          normal: 'd:/Yandex.Disk/MyPrograms/Plugins After effets/BiblioPard/Library/Materials/Metal/Brushed_Titanium/Titanium_Normal.png'
+          baseColor: `${rootNorm}/Materials/Metal/Brushed_Titanium/Titanium_BaseColor.png`,
+          roughness: `${rootNorm}/Materials/Metal/Brushed_Titanium/Titanium_Roughness.png`,
+          metallic: `${rootNorm}/Materials/Metal/Brushed_Titanium/Titanium_Metallic.png`,
+          normal: `${rootNorm}/Materials/Metal/Brushed_Titanium/Titanium_Normal.png`
         }
       }
     ];

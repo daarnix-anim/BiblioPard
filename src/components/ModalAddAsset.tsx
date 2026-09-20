@@ -179,6 +179,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
       const newAsset = await libraryManager.addAsset({
         name: name.trim(),
         file,
+        sourcePath: (file as any)?.path,
         type: assetType,
         category,
         tags: tagList,

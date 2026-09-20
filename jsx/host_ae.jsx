@@ -367,6 +367,100 @@ var BiblioPardAE = (function() {
                 try { app.endUndoGroup(); } catch (ignored) {}
                 return jsonResponse(false, null, "Material import error: " + e.toString());
             }
+        },
+
+        /**
+         * Reveal a file or directory in the OS file explorer (Windows Explorer / macOS Finder)
+         * @param {string} filePath - Path to file or folder
+         */
+        revealFile: function(filePath) {
+            try {
+                if (!filePath) return jsonResponse(false, null, "No path provided");
+                var cleanPath = String(filePath).replace(/^file:\/\/\/?/i, "");
+                var f = new File(cleanPath);
+                if (!f.exists) {
+                    f = new Folder(cleanPath);
+                }
+                if (f.exists) {
+                    f.execute();
+                    return jsonResponse(true, { path: f.fsName }, "Revealed in Explorer");
+                }
+                // If specific file not found, try revealing parent directory
+                var lastSlash = Math.max(cleanPath.lastIndexOf("/"), cleanPath.lastIndexOf("\\"));
+                if (lastSlash !== -1) {
+                    var parentFolder = new Folder(cleanPath.substring(0, lastSlash));
+                    if (parentFolder.exists) {
+                        parentFolder.execute();
+                        return jsonResponse(true, { path: parentFolder.fsName }, "Parent folder opened");
+                    }
+                }
+                return jsonResponse(false, null, "File or folder not found: " + cleanPath);
+            } catch (e) {
+                return jsonResponse(false, null, e.toString());
+            }
+        },
+
+        /**
+         * Copy a file from source to destination path
+         * @param {string} paramsJson - { srcPath: string, dstPath: string }
+         */
+        copyFile: function(paramsJson) {
+            try {
+                var params = parseJson(paramsJson);
+                var src = new File(String(params.srcPath).replace(/^file:\/\/\/?/i, ""));
+                if (!src.exists) {
+                    return jsonResponse(false, null, "Source file does not exist: " + params.srcPath);
+                }
+                var dst = new File(String(params.dstPath).replace(/^file:\/\/\/?/i, ""));
+                var dstFolder = dst.parent;
+                if (!dstFolder.exists) {
+                    dstFolder.create();
+                }
+                var ok = src.copy(dst);
+                return jsonResponse(ok, { dstPath: dst.fsName }, ok ? "File copied successfully" : "Failed to copy file");
+            } catch (e) {
+                return jsonResponse(false, null, e.toString());
+            }
+        },
+
+        /**
+         * Write UTF-8 text file (e.g. meta.json)
+         * @param {string} paramsJson - { filePath: string, content: string }
+         */
+        writeTextFile: function(paramsJson) {
+            try {
+                var params = parseJson(paramsJson);
+                var f = new File(String(params.filePath).replace(/^file:\/\/\/?/i, ""));
+                var folder = f.parent;
+                if (!folder.exists) {
+                    folder.create();
+                }
+                f.encoding = "UTF-8";
+                if (f.open("w")) {
+                    f.write(params.content);
+                    f.close();
+                    return jsonResponse(true, { filePath: f.fsName });
+                }
+                return jsonResponse(false, null, "Could not open file for writing: " + params.filePath);
+            } catch (e) {
+                return jsonResponse(false, null, e.toString());
+            }
+        },
+
+        /**
+         * Ensure directory exists
+         * @param {string} folderPath
+         */
+        ensureFolder: function(folderPath) {
+            try {
+                var f = new Folder(String(folderPath).replace(/^file:\/\/\/?/i, ""));
+                if (!f.exists) {
+                    f.create();
+                }
+                return jsonResponse(true, { exists: f.exists, path: f.fsName });
+            } catch (e) {
+                return jsonResponse(false, null, e.toString());
+            }
         }
     };
 })();

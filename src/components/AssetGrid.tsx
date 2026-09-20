@@ -10,6 +10,7 @@ interface AssetGridProps {
   onOpenPreview: (asset: AssetItem) => void;
   onOpenAddModal: () => void;
   onEditAsset?: (asset: AssetItem) => void;
+  onRevealAsset?: (asset: AssetItem) => void;
   importingAssetId: string | null;
 }
 
@@ -20,6 +21,7 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
   onOpenPreview,
   onOpenAddModal,
   onEditAsset,
+  onRevealAsset,
   importingAssetId
 }) => {
   if (isLoading) {
@@ -66,6 +68,7 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
             onImport={onImportAsset}
             onOpenPreview={onOpenPreview}
             onEdit={onEditAsset}
+            onReveal={onRevealAsset}
             isImporting={importingAssetId === asset.id}
           />
         ))}
