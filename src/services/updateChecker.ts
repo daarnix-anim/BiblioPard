@@ -1,9 +1,10 @@
 import { ReleaseInfo } from '../types';
 import { unzipSync } from 'fflate';
 import { getNodeFs, getNodePath, isNodeAvailable, getNodeModule } from './nodeBridge';
+import { APP_VERSION } from '../version';
 
 export class UpdateChecker {
-  public readonly CURRENT_VERSION = '0.0.1';
+  public readonly CURRENT_VERSION = APP_VERSION;
 
   /**
    * Compare two semver strings: returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal

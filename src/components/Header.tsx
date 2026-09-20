@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Plus, RefreshCw, Settings, Box, Layers, DownloadCloud, Sparkles, ArrowUpCircle } from 'lucide-react';
 import { HostInfo, ReleaseInfo } from '../types';
+import { APP_VERSION } from '../version';
 
 interface HeaderProps {
   searchQuery: string;
@@ -62,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div>
           <div className="flex items-center gap-1.5">
             <h1 className="font-bold text-xs tracking-wide text-white">BiblioPard</h1>
-            <span className="text-[9px] font-mono text-[#888888] bg-[#252525] px-1 py-0.2 rounded">v0.0.1</span>
+            <span className="text-[9px] font-mono text-[#888888] bg-[#252525] px-1 py-0.2 rounded">v{APP_VERSION}</span>
             {getHostBadge()}
           </div>
           <p className="text-[9px] text-adobe-muted leading-none">Библиотека 3D и медиа-ассетов</p>

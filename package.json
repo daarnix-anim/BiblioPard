@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "install:cep": "node build-scripts/install-extension.js"
+    "install:cep": "node build-scripts/install-extension.js",
+    "bump": "node build-scripts/bump-version.js",
+    "bump:minor": "node build-scripts/bump-version.js minor",
+    "bump:major": "node build-scripts/bump-version.js major"
   },
   "dependencies": {
     "clsx": "^2.1.1",
