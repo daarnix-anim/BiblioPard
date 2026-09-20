@@ -28,11 +28,13 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
   const [previewGif, setPreviewGif] = useState<string | null>(null);
   const [isGeneratingGif, setIsGeneratingGif] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<ThreePreviewEngine | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const gifPromiseRef = useRef<Promise<string | null> | null>(null);
 
   // Initialize Three.js viewport when modal opens and container is available
   useEffect(() => {
@@ -66,8 +68,37 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
     }
   };
 
+  /**
+   * Helper to trigger 360 GIF turntable generation
+   */
+  const triggerAutoGifGeneration = (engine: ThreePreviewEngine, framesCount = 24): Promise<string | null> => {
+    setIsGeneratingGif(true);
+    const promise = (async () => {
+      try {
+        await new Promise((r) => setTimeout(r, 150));
+        const frames = await engine.capture360Frames(framesCount, 280, 280);
+        if (!frames || frames.length === 0) return null;
+        const { base64 } = await createGifFromFrames(frames, 12);
+        setPreviewGif(base64);
+        return base64;
+      } catch (err: any) {
+        console.warn('Auto GIF generation error:', err);
+        return null;
+      } finally {
+        setIsGeneratingGif(false);
+      }
+    })();
+
+    gifPromiseRef.current = promise;
+    return promise;
+  };
+
   const handleSelectedFiles = async (filesList: File[]) => {
     setErrorMsg(null);
+    setPreviewPng(null);
+    setPreviewGif(null);
+    gifPromiseRef.current = null;
+
     if (filesList.length === 0) return;
 
     const firstFile = filesList[0];
@@ -93,9 +124,15 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
             await engineRef.current.loadMaterial(matCheck.maps);
             setTimeout(() => {
               if (engineRef.current) {
-                setPreviewPng(engineRef.current.captureSnapshot(400, 400));
+                const snap = engineRef.current.captureSnapshot(400, 400);
+                setPreviewPng(snap);
+
+                const settings = libraryManager.getSettings();
+                if (settings.generateGifByDefault !== false) {
+                  triggerAutoGifGeneration(engineRef.current, settings.gifFramesCount || 24);
+                }
               }
-            }, 300);
+            }, 350);
           } catch (err: any) {
             setErrorMsg('Не удалось создать превью материала: ' + (err?.message || err));
           }
@@ -131,8 +168,14 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
           if (engineRef.current) {
             const initialSnapshot = engineRef.current.captureSnapshot(400, 400);
             setPreviewPng(initialSnapshot);
+
+            // Automatically generate 360 GIF for 3D models
+            const settings = libraryManager.getSettings();
+            if (is3D && settings.generateGifByDefault !== false) {
+              triggerAutoGifGeneration(engineRef.current, settings.gifFramesCount || 24);
+            }
           }
-        }, 300);
+        }, 250);
       } catch (err: any) {
         setErrorMsg('Не удалось создать 3D-превью: ' + (err?.message || err));
       }
@@ -148,17 +191,9 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
 
   const handleGenerate360Gif = async () => {
     if (!engineRef.current || !file) return;
-    setIsGeneratingGif(true);
     setErrorMsg(null);
-    try {
-      const frames = await engineRef.current.capture360Frames(24, 280, 280);
-      const { base64 } = await createGifFromFrames(frames, 20);
-      setPreviewGif(base64);
-    } catch (err: any) {
-      setErrorMsg('Ошибка создания GIF: ' + (err?.message || err));
-    } finally {
-      setIsGeneratingGif(false);
-    }
+    const settings = libraryManager.getSettings();
+    await triggerAutoGifGeneration(engineRef.current, settings.gifFramesCount || 24);
   };
 
   const handleSave = async () => {
@@ -173,8 +208,29 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
 
     setIsSaving(true);
     setErrorMsg(null);
+    setSavingStatus('Подготовка превью...');
 
     try {
+      // 1. Ensure preview snapshot exists
+      let finalPng = previewPng;
+      if (!finalPng && engineRef.current) {
+        finalPng = engineRef.current.captureSnapshot(400, 400);
+        setPreviewPng(finalPng);
+      }
+
+      // 2. Ensure 360 GIF exists for 3D models or materials
+      let finalGif = previewGif;
+      const settings = libraryManager.getSettings();
+      if (!finalGif && (assetType === '3d-model' || assetType === 'pbr-material') && settings.generateGifByDefault !== false) {
+        setSavingStatus('Создание 360° GIF...');
+        if (gifPromiseRef.current) {
+          finalGif = (await gifPromiseRef.current) || undefined;
+        } else if (engineRef.current) {
+          finalGif = (await triggerAutoGifGeneration(engineRef.current, settings.gifFramesCount || 24)) || undefined;
+        }
+      }
+
+      setSavingStatus('Сохранение в библиотеку...');
       const tagList = tags.split(',').map(t => t.trim()).filter(Boolean);
       const newAsset = await libraryManager.addAsset({
         name: name.trim(),
@@ -184,8 +240,8 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
         category,
         tags: tagList,
         description,
-        previewPngBase64: previewPng || undefined,
-        previewGifBase64: previewGif || undefined
+        previewPngBase64: finalPng || undefined,
+        previewGifBase64: finalGif || undefined
       });
 
       onAssetAdded(newAsset);
@@ -194,6 +250,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
       setErrorMsg('Ошибка сохранения ассета: ' + (err?.message || err));
     } finally {
       setIsSaving(false);
+      setSavingStatus(null);
     }
   };
 
@@ -357,13 +414,13 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
               {/* Preview thumbnails status */}
               <div className="pt-2 border-t border-[#2e2e2e] flex items-center gap-3">
                 <div className="flex items-center gap-1.5 text-[10px] text-[#aaaaaa]">
-                  <span className={`w-2 h-2 rounded-full ${previewPng ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  <span>Превью: {previewPng ? 'Готово' : 'Ожидает'}</span>
+                  <span className={`w-2 h-2 rounded-full ${previewPng ? 'bg-emerald-500' : (file ? 'bg-amber-500 animate-pulse' : 'bg-[#555555]')}`} />
+                  <span>Превью: {previewPng ? 'Готово' : (file ? 'Создание...' : 'Ожидает')}</span>
                 </div>
                 {(assetType === '3d-model' || assetType === 'pbr-material') && (
                   <div className="flex items-center gap-1.5 text-[10px] text-[#aaaaaa]">
-                    <span className={`w-2 h-2 rounded-full ${previewGif ? 'bg-emerald-500' : 'bg-[#555555]'}`} />
-                    <span>360° GIF: {previewGif ? 'Готов' : 'Необязательно'}</span>
+                    <span className={`w-2 h-2 rounded-full ${previewGif ? 'bg-emerald-500' : (isGeneratingGif ? 'bg-purple-400 animate-pulse' : 'bg-amber-500')}`} />
+                    <span>360° GIF: {previewGif ? 'Готов' : (isGeneratingGif ? 'Рендеринг...' : 'Создается автоматически')}</span>
                   </div>
                 )}
               </div>
@@ -400,7 +457,7 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
             className="flex items-center gap-1.5 px-4 py-1.5 bg-adobe-accent hover:bg-adobe-accentHover disabled:opacity-50 disabled:pointer-events-none text-white rounded-md text-xs font-medium shadow transition-colors"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-            <span>{isSaving ? 'Сохранение...' : 'Сохранить в библиотеку'}</span>
+            <span>{isSaving ? (savingStatus || 'Сохранение...') : 'Сохранить в библиотеку'}</span>
           </button>
         </div>
       </div>
