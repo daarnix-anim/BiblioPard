@@ -107,11 +107,33 @@ export class ThreePreviewEngine {
   /**
    * Load 3D Model from URL, Blob or ArrayBuffer
    */
-  public async loadModel(source: string | ArrayBuffer, format: 'glb' | 'gltf' | 'obj'): Promise<void> {
+  public async loadModel(source: string | ArrayBuffer, format: string): Promise<void> {
     this.clearModel();
 
     return new Promise((resolve, reject) => {
-      if (format === 'glb' || format === 'gltf') {
+      const fmt = (format || '').toLowerCase().replace('.', '').trim();
+      const isGLTF = fmt === 'glb' || fmt === 'gltf' || fmt === 'gbl';
+
+      // Check if source is a local file path string
+      let effectiveSource: string | ArrayBuffer = source;
+      if (typeof source === 'string' && typeof window !== 'undefined' && window.require) {
+        if (!source.startsWith('http://') && !source.startsWith('https://') && !source.startsWith('data:')) {
+          try {
+            const fs = window.require('fs');
+            const clean = source.replace(/^file:\/\/\/?/i, '');
+            const winPath = clean.replace(/\//g, '\\');
+            const targetPath = fs.existsSync(clean) ? clean : (fs.existsSync(winPath) ? winPath : null);
+            if (targetPath) {
+              const buf = fs.readFileSync(targetPath);
+              effectiveSource = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+            }
+          } catch (e) {
+            console.warn('[ThreePreview] Local file read error:', e);
+          }
+        }
+      }
+
+      if (isGLTF) {
         const loader = new GLTFLoader();
         const onLoad = (gltf: any) => {
           const model = gltf.scene;
@@ -121,12 +143,12 @@ export class ThreePreviewEngine {
           resolve();
         };
 
-        if (typeof source === 'string') {
-          loader.load(source, onLoad, undefined, reject);
+        if (typeof effectiveSource === 'string') {
+          loader.load(effectiveSource, onLoad, undefined, reject);
         } else {
-          loader.parse(source, '', onLoad, reject);
+          loader.parse(effectiveSource, '', onLoad, reject);
         }
-      } else if (format === 'obj') {
+      } else if (fmt === 'obj') {
         const loader = new OBJLoader();
         const onLoad = (obj: THREE.Group) => {
           this.fitModelToView(obj);
@@ -135,10 +157,10 @@ export class ThreePreviewEngine {
           resolve();
         };
 
-        if (typeof source === 'string') {
-          loader.load(source, onLoad, undefined, reject);
+        if (typeof effectiveSource === 'string') {
+          loader.load(effectiveSource, onLoad, undefined, reject);
         } else {
-          const text = new TextDecoder().decode(source);
+          const text = new TextDecoder().decode(effectiveSource);
           const obj = loader.parse(text);
           onLoad(obj);
         }

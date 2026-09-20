@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Sun, Film, Type, Eye, Download, Sparkles, Check, AlertCircle, Palette } from 'lucide-react';
+import { Box, Sun, Film, Type, Eye, Download, Sparkles, Palette } from 'lucide-react';
 import { AssetItem } from '../types';
 
 interface AssetCardProps {
@@ -71,14 +71,14 @@ export const AssetCard: React.FC<AssetCardProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       className="group bg-[#222222] border border-[#333333] hover:border-[#4f4f4f] rounded-lg overflow-hidden flex flex-col asset-card shadow-sm hover:shadow-lg transition-all"
     >
-      {/* Thumbnail Area */}
+      {/* Thumbnail Area - Crisp, No Blur, Full Details */}
       <div className="relative aspect-[4/3] bg-[#141414] overflow-hidden flex items-center justify-center">
         {currentPreview && !imgError ? (
           <img
             src={currentPreview}
             alt={asset.name}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-200"
           />
         ) : (
           <div className="flex flex-col items-center justify-center text-[#555555] gap-2 p-4">
@@ -96,73 +96,81 @@ export const AssetCard: React.FC<AssetCardProps> = ({
         )}
 
         {/* Badges on Top */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10 pointer-events-none">
           {getTypeBadge()}
-          <span className="bg-black/60 backdrop-blur-sm text-white text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border border-white/10">
+          <span className="bg-black/70 backdrop-blur-sm text-white text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border border-white/10">
             {asset.format}
           </span>
         </div>
 
         {/* 360 GIF indicator badge */}
         {asset.previewGif && (
-          <div className="absolute top-2 right-2 bg-purple-900/70 border border-purple-500/40 text-purple-200 text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 z-10">
+          <div className="absolute top-2 right-2 bg-purple-900/80 border border-purple-500/40 text-purple-200 text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 z-10 pointer-events-none">
             <Sparkles className="w-2.5 h-2.5" /> 360°
           </div>
         )}
 
-        {/* Hover Overlay Controls */}
-        <div className={`absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center gap-2 transition-opacity duration-200 ${
-          isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}>
-          {(asset.type === '3d-model' || asset.type === 'environment-light' || asset.type === 'pbr-material') && (
-            <button
-              onClick={() => onOpenPreview(asset)}
-              title="Interactive 3D / Shader Ball View"
-              className="p-2 bg-[#2a2a2a]/90 hover:bg-[#383838] text-white rounded-full transition-transform hover:scale-110 shadow-md border border-white/20"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
-          )}
+        {/* Corner 3D View Button (appears on hover without obscuring the model) */}
+        {(asset.type === '3d-model' || asset.type === 'environment-light' || asset.type === 'pbr-material') && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenPreview(asset);
+            }}
+            title="Open Interactive 3D View"
+            className={`absolute bottom-2 right-2 p-1.5 bg-[#181818]/90 hover:bg-[#2c2c2c] text-white rounded-md transition-opacity duration-150 border border-white/15 shadow-md ${
+              isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Info & Bottom Action Area */}
+      <div className="p-2.5 flex-1 flex flex-col justify-between bg-[#1e1e1e]">
+        <div>
+          <h3 className="font-semibold text-xs text-white truncate mb-0.5" title={asset.name}>
+            {asset.name}
+          </h3>
+          <div className="flex items-center justify-between text-[10px] text-[#808080]">
+            <span>{asset.category}</span>
+            <span>{formatFileSize(asset.fileSize)}</span>
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {asset.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="text-[9px] bg-[#141414] text-[#888888] px-1.5 py-0.2 rounded border border-[#2e2e2e]"
+              >
+                #{tag}
+              </span>
+            ))}
+            {asset.tags.length > 3 && (
+              <span className="text-[9px] text-[#666666]">
+                +{asset.tags.length - 3}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Import Bar - Clearly visible at the bottom of the card */}
+        <div className="mt-2.5 pt-2 border-t border-[#2d2d2d] flex items-center justify-between gap-2">
+          <span className="text-[10px] text-[#737373] font-mono uppercase truncate">
+            {asset.format}
+          </span>
 
           <button
             onClick={() => onImport(asset)}
             disabled={isImporting}
             title="Import to After Effects"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded-full font-medium text-xs shadow-md transition-transform hover:scale-105 active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1 bg-adobe-accent hover:bg-adobe-accentHover text-white rounded text-xs font-medium shadow-sm transition-transform active:scale-95 disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Import</span>
+            <span>{isImporting ? 'Importing...' : 'Import'}</span>
           </button>
-        </div>
-      </div>
-
-      {/* Info Area */}
-      <div className="p-2.5 flex-1 flex flex-col justify-between">
-        <div>
-          <h3 className="font-semibold text-xs text-white truncate mb-0.5" title={asset.name}>
-            {asset.name}
-          </h3>
-          <div className="flex items-center justify-between text-[10px] text-[#808080] mb-2">
-            <span>{asset.category}</span>
-            <span>{formatFileSize(asset.fileSize)}</span>
-          </div>
-        </div>
-
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1 mt-auto">
-          {asset.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="text-[9px] bg-[#1a1a1a] text-[#888888] px-1.5 py-0.2 rounded border border-[#2e2e2e]"
-            >
-              #{tag}
-            </span>
-          ))}
-          {asset.tags.length > 3 && (
-            <span className="text-[9px] text-[#666666]">
-              +{asset.tags.length - 3}
-            </span>
-          )}
         </div>
       </div>
     </div>

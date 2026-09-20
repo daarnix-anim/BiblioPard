@@ -9,12 +9,14 @@ interface ModalAddAssetProps {
   isOpen: boolean;
   onClose: () => void;
   onAssetAdded: (asset: AssetItem) => void;
+  initialFiles?: File[] | null;
 }
 
 export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
   isOpen,
   onClose,
-  onAssetAdded
+  onAssetAdded,
+  initialFiles
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [assetType, setAssetType] = useState<AssetType>('3d-model');
@@ -44,6 +46,16 @@ export const ModalAddAsset: React.FC<ModalAddAssetProps> = ({
       }
     };
   }, [isOpen]);
+
+  // If opened via global drag-and-drop, immediately process the dropped files
+  useEffect(() => {
+    if (isOpen && initialFiles && initialFiles.length > 0) {
+      // Small timeout to ensure Three.js canvas is mounted
+      setTimeout(() => {
+        handleSelectedFiles(initialFiles);
+      }, 100);
+    }
+  }, [isOpen, initialFiles]);
 
   if (!isOpen) return null;
 

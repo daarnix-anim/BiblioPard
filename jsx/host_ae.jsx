@@ -20,10 +20,19 @@ var BiblioPardAE = (function() {
     }
 
     function parseJson(str) {
-        if (typeof JSON !== 'undefined' && JSON.parse) {
-            return JSON.parse(str);
+        if (typeof str === 'object' && str !== null) return str;
+        var res = str;
+        try {
+            res = (typeof JSON !== 'undefined' && JSON.parse) ? JSON.parse(str) : eval('(' + str + ')');
+        } catch (e1) {
+            try { res = eval('(' + str + ')'); } catch (e2) {}
         }
-        return eval('(' + str + ')');
+        if (typeof res === 'string') {
+            try {
+                res = (typeof JSON !== 'undefined' && JSON.parse) ? JSON.parse(res) : eval('(' + res + ')');
+            } catch (e3) {}
+        }
+        return res;
     }
 
     return {

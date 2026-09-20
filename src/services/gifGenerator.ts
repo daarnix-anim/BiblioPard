@@ -2,7 +2,7 @@ import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 
 export async function createGifFromFrames(
   frames: ImageData[],
-  fps: number = 20
+  fps: number = 10
 ): Promise<{ blobUrl: string; base64: string }> {
   if (!frames || frames.length === 0) {
     throw new Error('No frames provided for GIF generation');
@@ -10,17 +10,14 @@ export async function createGifFromFrames(
 
   const width = frames[0].width;
   const height = frames[0].height;
-  const delay = Math.round(1000 / fps);
+  const delay = Math.round(1000 / fps); // 100ms per frame for smooth 10fps turntable
 
   const gif = GIFEncoder();
 
   for (const frame of frames) {
     const { data } = frame;
-    // Quantize 32-bit RGBA into a 256-color palette
-    const palette = quantize(data, 256, {
-      format: 'rgba4444',
-      clearAlpha: false
-    });
+    // High-quality palette quantization
+    const palette = quantize(data, 256);
     const index = applyPalette(data, palette);
     gif.writeFrame(index, width, height, {
       palette,

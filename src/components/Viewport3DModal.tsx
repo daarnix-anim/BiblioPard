@@ -42,8 +42,11 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
         if (typeof window !== 'undefined' && window.require) {
           try {
             const fs = window.require('fs');
-            if (fs.existsSync(asset.filePath)) {
-              const buffer = fs.readFileSync(asset.filePath);
+            const raw = asset.filePath.replace(/^file:\/\/\/?/i, '');
+            const win = raw.replace(/\//g, '\\');
+            const target = fs.existsSync(raw) ? raw : (fs.existsSync(win) ? win : null);
+            if (target) {
+              const buffer = fs.readFileSync(target);
               fileSource = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
             }
           } catch (e) {
@@ -52,7 +55,7 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
         }
 
         if (asset.type === '3d-model') {
-          await engine.loadModel(fileSource, asset.format as 'glb' | 'gltf' | 'obj');
+          await engine.loadModel(fileSource, asset.format);
         } else if (asset.type === 'environment-light') {
           await engine.loadHDR(fileSource);
         } else if (asset.type === 'pbr-material') {

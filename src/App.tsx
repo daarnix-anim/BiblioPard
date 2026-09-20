@@ -11,7 +11,7 @@ import { hostBridge } from './services/hostBridge';
 import { libraryManager } from './services/libraryManager';
 import { libraryWatcher } from './services/libraryWatcher';
 import { updateChecker } from './services/updateChecker';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, X, Upload } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [assets, setAssets] = useState<AssetItem[]>([]);
@@ -23,6 +23,10 @@ export const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [importingAssetId, setImportingAssetId] = useState<string | null>(null);
   const [isImportingFromAE, setIsImportingFromAE] = useState<boolean>(false);
+
+  // Global Drag and Drop
+  const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -185,8 +189,56 @@ export const App: React.FC = () => {
     });
   }, [assets, selectedCategory, selectedTag, searchQuery, categories]);
 
+  const handleGlobalDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingOver) {
+      setIsDraggingOver(true);
+    }
+  };
+
+  const handleGlobalDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDraggingOver(false);
+  };
+
+  const handleGlobalDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      setDroppedFiles(files);
+      setIsAddModalOpen(true);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#181818] text-[#e6e6e6] select-none overflow-hidden">
+    <div
+      onDragOver={handleGlobalDragOver}
+      onDragEnter={handleGlobalDragOver}
+      onDragLeave={handleGlobalDragLeave}
+      onDrop={handleGlobalDrop}
+      className="relative flex flex-col h-screen w-screen bg-[#181818] text-[#e6e6e6] select-none overflow-hidden"
+    >
+      {/* Global Drag & Drop Overlay */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-50 bg-[#141414]/90 border-2 border-dashed border-adobe-accent backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-150">
+          <div className="p-6 bg-[#202020] border border-adobe-accent/40 rounded-2xl shadow-2xl flex flex-col items-center gap-3 text-center max-w-sm">
+            <div className="p-3 bg-adobe-accent/20 text-adobe-accent rounded-full animate-bounce">
+              <Upload className="w-8 h-8" />
+            </div>
+            <h3 className="text-sm font-bold text-white">Drop to Add to BiblioPard</h3>
+            <p className="text-xs text-[#999999]">
+              3D models (.glb, .gltf, .obj), HDR maps (.hdr, .exr), or PBR material texture sets
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <Header
         searchQuery={searchQuery}
@@ -246,8 +298,12 @@ export const App: React.FC = () => {
       {/* Modals */}
       <ModalAddAsset
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setDroppedFiles(null);
+        }}
         onAssetAdded={handleAssetAdded}
+        initialFiles={droppedFiles}
       />
 
       <Viewport3DModal
