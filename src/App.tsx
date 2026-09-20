@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { SidebarCategories } from './components/SidebarCategories';
 import { AssetGrid } from './components/AssetGrid';
 import { ModalAddAsset } from './components/ModalAddAsset';
+import { ModalEditAsset } from './components/ModalEditAsset';
 import { Viewport3DModal } from './components/Viewport3DModal';
 import { SettingsModal } from './components/SettingsModal';
 import { UpdateNotificationModal } from './components/UpdateNotificationModal';
@@ -33,6 +34,7 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
   const [previewAsset, setPreviewAsset] = useState<AssetItem | null>(null);
+  const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
 
   // Host, Update & Toast
   const [hostInfo, setHostInfo] = useState<HostInfo | null>(null);
@@ -274,6 +276,7 @@ export const App: React.FC = () => {
             onImportAsset={handleImportAsset}
             onOpenPreview={(asset) => setPreviewAsset(asset)}
             onOpenAddModal={() => setIsAddModalOpen(true)}
+            onEditAsset={(asset) => setEditingAsset(asset)}
             importingAssetId={importingAssetId}
           />
         </main>
@@ -306,11 +309,28 @@ export const App: React.FC = () => {
         initialFiles={droppedFiles}
       />
 
+      <ModalEditAsset
+        asset={editingAsset}
+        isOpen={!!editingAsset}
+        onClose={() => setEditingAsset(null)}
+        onAssetUpdated={(updated) => {
+          setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+          setEditingAsset(null);
+          showToast(`"${updated.name}" updated successfully!`, 'success');
+        }}
+        onAssetDeleted={(deletedId) => {
+          setAssets((prev) => prev.filter((a) => a.id !== deletedId));
+          setEditingAsset(null);
+          showToast('Asset deleted from library', 'info');
+        }}
+      />
+
       <Viewport3DModal
         asset={previewAsset}
         isOpen={!!previewAsset}
         onClose={() => setPreviewAsset(null)}
         onImport={handleImportAsset}
+        onEdit={(asset) => setEditingAsset(asset)}
         isImporting={importingAssetId === previewAsset?.id}
       />
 

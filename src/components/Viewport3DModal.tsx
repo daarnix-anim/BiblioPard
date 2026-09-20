@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Grid, Download, Loader2, Maximize2, Sun, Box, Info, Palette } from 'lucide-react';
+import { X, Grid, Download, Loader2, Maximize2, Sun, Box, Info, Palette, Edit3 } from 'lucide-react';
 import { AssetItem } from '../types';
 import { ThreePreviewEngine } from '../services/threePreview';
 
@@ -8,6 +8,7 @@ interface Viewport3DModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (asset: AssetItem) => Promise<void>;
+  onEdit?: (asset: AssetItem) => void;
   isImporting: boolean;
 }
 
@@ -16,6 +17,7 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
   isOpen,
   onClose,
   onImport,
+  onEdit,
   isImporting
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -154,10 +156,24 @@ export const Viewport3DModal: React.FC<Viewport3DModalProps> = ({
               />
             </div>
 
+            {/* Edit Asset Button */}
+            {onEdit && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onEdit(asset);
+                }}
+                title="Edit Asset Details, Update from AE, or Delete"
+                className="text-[#888888] hover:text-white p-1.5 rounded hover:bg-[#282828] transition-colors ml-1"
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+            )}
+
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="text-[#888888] hover:text-white p-1.5 rounded hover:bg-[#282828] transition-colors ml-2"
+              className="text-[#888888] hover:text-white p-1.5 rounded hover:bg-[#282828] transition-colors ml-1"
             >
               <X className="w-4 h-4" />
             </button>

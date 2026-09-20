@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Box, Sun, Film, Type, Eye, Download, Sparkles, Palette } from 'lucide-react';
+import { Box, Sun, Film, Type, Eye, Download, Sparkles, Palette, Edit3 } from 'lucide-react';
 import { AssetItem } from '../types';
 
 interface AssetCardProps {
   asset: AssetItem;
   onImport: (asset: AssetItem) => Promise<void>;
   onOpenPreview: (asset: AssetItem) => void;
+  onEdit?: (asset: AssetItem) => void;
   isImporting: boolean;
 }
 
@@ -13,6 +14,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
   asset,
   onImport,
   onOpenPreview,
+  onEdit,
   isImporting
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -158,9 +160,23 @@ export const AssetCard: React.FC<AssetCardProps> = ({
 
         {/* Bottom Import Bar - Clearly visible at the bottom of the card */}
         <div className="mt-2.5 pt-2 border-t border-[#2d2d2d] flex items-center justify-between gap-2">
-          <span className="text-[10px] text-[#737373] font-mono uppercase truncate">
-            {asset.format}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[10px] text-[#737373] font-mono uppercase truncate">
+              {asset.format}
+            </span>
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(asset);
+                }}
+                title="Edit asset, update from AE, or delete"
+                className="p-1 text-[#666666] hover:text-white hover:bg-[#2e2e2e] rounded transition-colors"
+              >
+                <Edit3 className="w-3 h-3" />
+              </button>
+            )}
+          </div>
 
           <button
             onClick={() => onImport(asset)}

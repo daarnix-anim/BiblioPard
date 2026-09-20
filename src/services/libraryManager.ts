@@ -346,6 +346,133 @@ export class LibraryManager {
   }
 
   /**
+   * Update asset metadata (name, category, tags, description)
+   */
+  public async updateAssetMetadata(
+    asset: AssetItem,
+    updates: { name: string; category: string; tags: string[]; description?: string }
+  ): Promise<AssetItem> {
+    const updatedAsset: AssetItem = {
+      ...asset,
+      name: updates.name.trim(),
+      category: updates.category.trim(),
+      tags: updates.tags,
+      description: updates.description
+    };
+
+    if (this.isNodeAvailable()) {
+      try {
+        const rawPath = asset.filePath.replace(/^file:\/\/\/?/i, '');
+        const assetDir = asset.type === 'pbr-material' ? rawPath : this.path.dirname(rawPath);
+        const metaPath = this.path.join(assetDir, 'meta.json');
+
+        let currentMeta: any = {};
+        if (this.fs.existsSync(metaPath)) {
+          try {
+            currentMeta = JSON.parse(this.fs.readFileSync(metaPath, 'utf8'));
+          } catch {}
+        }
+
+        const newMeta = {
+          ...currentMeta,
+          name: updatedAsset.name,
+          category: updatedAsset.category,
+          tags: updatedAsset.tags,
+          description: updatedAsset.description || '',
+          updatedAt: new Date().toISOString()
+        };
+
+        this.fs.writeFileSync(metaPath, JSON.stringify(newMeta, null, 2));
+      } catch (err) {
+        console.error('Failed to update meta.json on disk:', err);
+      }
+    } else {
+      const mocks = this.getMockAssets().map(a => a.id === asset.id ? updatedAsset : a);
+      localStorage.setItem(this.localAssetsKey, JSON.stringify(mocks));
+    }
+
+    return updatedAsset;
+  }
+
+  /**
+   * Replace source file with a newer version (e.g. from After Effects project)
+   */
+  public async replaceAssetFile(asset: AssetItem, newSourcePath: string): Promise<AssetItem> {
+    const rawNewPath = newSourcePath.replace(/^file:\/\/\/?/i, '');
+
+    if (this.isNodeAvailable()) {
+      if (!this.fs.existsSync(rawNewPath)) {
+        throw new Error(`Source file does not exist: ${rawNewPath}`);
+      }
+
+      const rawOldPath = asset.filePath.replace(/^file:\/\/\/?/i, '');
+      const assetDir = asset.type === 'pbr-material' ? rawOldPath : this.path.dirname(rawOldPath);
+      const newExt = this.path.extname(rawNewPath).toLowerCase().replace('.', '');
+      const safeName = asset.name.replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, '_');
+      const targetPath = this.path.join(assetDir, `${safeName}.${newExt}`);
+
+      // Copy new file over target
+      this.fs.copyFileSync(rawNewPath, targetPath);
+
+      // If old file had a different path, remove it
+      if (targetPath !== rawOldPath && this.fs.existsSync(rawOldPath)) {
+        try { this.fs.unlinkSync(rawOldPath); } catch {}
+      }
+
+      const stat = this.fs.statSync(targetPath);
+      const metaPath = this.path.join(assetDir, 'meta.json');
+      let meta: any = {};
+      if (this.fs.existsSync(metaPath)) {
+        try { meta = JSON.parse(this.fs.readFileSync(metaPath, 'utf8')); } catch {}
+      }
+      meta.format = newExt;
+      meta.updatedAt = new Date().toISOString();
+      this.fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+
+      return {
+        ...asset,
+        filePath: targetPath,
+        format: newExt,
+        fileSize: stat.size
+      };
+    }
+
+    return asset;
+  }
+
+  /**
+   * Delete asset from library and disk
+   */
+  public async deleteAsset(asset: AssetItem): Promise<boolean> {
+    if (this.isNodeAvailable()) {
+      try {
+        const settings = this.getSettings();
+        const rawPath = asset.filePath.replace(/^file:\/\/\/?/i, '');
+        const assetDir = asset.type === 'pbr-material' ? rawPath : this.path.dirname(rawPath);
+
+        // Security check: ensure assetDir is inside libraryRoot
+        const normalizedRoot = this.path.resolve(settings.libraryRoot).toLowerCase();
+        const normalizedDir = this.path.resolve(assetDir).toLowerCase();
+
+        if (normalizedDir.startsWith(normalizedRoot) && normalizedDir !== normalizedRoot) {
+          if (this.fs.existsSync(assetDir)) {
+            this.fs.rmSync(assetDir, { recursive: true, force: true });
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to delete asset directory:', err);
+        throw err;
+      }
+    } else {
+      const mocks = this.getMockAssets().filter(a => a.id !== asset.id);
+      localStorage.setItem(this.localAssetsKey, JSON.stringify(mocks));
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Browser dev mock assets
    */
   private getMockAssets(): AssetItem[] {
